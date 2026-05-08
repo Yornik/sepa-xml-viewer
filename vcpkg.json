@@ -12,6 +12,10 @@
             "features": ["gui"],
             "comment": "No 'network' feature — see plan/00-init-phase.md §3.4. Offline by build-time guarantee."
         },
-        "qtdeclarative"
+        "qtdeclarative",
+        {
+            "name": "catch2",
+            "version>=": "3.5.0"
+        }
     ]
 }

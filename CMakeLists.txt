@@ -28,4 +28,13 @@ include(cmake/ProjectVersion.cmake)
 find_package(Qt6 6.5 REQUIRED COMPONENTS Gui Quick)
 qt_standard_project_setup(REQUIRES 6.5)
 
+option(SEPA_VIEWER_BUILD_TESTS "Build the unit / integration / GUI-smoke tests" ON)
+
 add_subdirectory(src)
+
+if(SEPA_VIEWER_BUILD_TESTS)
+    enable_testing()
+    find_package(Catch2 3 REQUIRED)
+    include(Catch)
+    add_subdirectory(tests)
+endif()
