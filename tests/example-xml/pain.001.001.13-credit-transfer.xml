@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+================================================================================
+  SEPA Credit Transfer Initiation - pain.001.001.13
+================================================================================
+
+  ISO 20022 message:   pain.001.001.13
+  EPC scheme:          SEPA Credit Transfer (SCT) Customer-to-PSP
+  Intent:              one debtor initiates a single EUR credit transfer to
+                       one creditor; both parties in Germany; structured
+                       postal addresses (post-2026-11-15 compliant).
+
+  >>>  TEST DATA - DO NOT USE FOR REAL PAYMENTS  <<<
+
+  Every IBAN, BIC, name, address, and identifier in this file is a synthetic
+  PLACEHOLDER. See tests/example-xml/README.md for the placeholder convention.
+
+  IBANs are checksum-valid (mod-97 = 1) but reference fake bank codes:
+    Debtor   IBAN: DE92123456789876543210   (BLZ 12345678, fake)
+    Creditor IBAN: DE29876543210123456789   (BLZ 87654321, fake)
+
+  BICs follow the placeholder pattern BANKDEFFXXX / OTHRDEFFXXX.
+  Names are prefixed with "PLACEHOLDER".
+
+  This file is structured to match the official pain.001.001.13.xsd
+  published at https://www.iso20022.org. Final XSD validation lands in
+  Phase 1 when the Xerces-C++ integration arrives.
+================================================================================
+-->
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.001.001.13"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <CstmrCdtTrfInitn>
+
+        <!-- Group Header - applies to the entire message -->
+        <GrpHdr>
+            <MsgId>PLACEHOLDER-MSG-20260508-0001</MsgId>
+            <CreDtTm>2026-05-08T10:30:00</CreDtTm>
+            <NbOfTxs>1</NbOfTxs>
+            <CtrlSum>123.45</CtrlSum>
+            <InitgPty>
+                <Nm>PLACEHOLDER Initiating Party AG</Nm>
+                <Id>
+                    <OrgId>
+                        <Othr>
+                            <Id>PLACEHOLDER-ORG-ID-001</Id>
+                        </Othr>
+                    </OrgId>
+                </Id>
+            </InitgPty>
+        </GrpHdr>
+
+        <!-- Payment Information block - one batch of one transaction -->
+        <PmtInf>
+            <PmtInfId>PLACEHOLDER-PMT-INF-0001</PmtInfId>
+            <PmtMtd>TRF</PmtMtd>
+            <BtchBookg>true</BtchBookg>
+            <NbOfTxs>1</NbOfTxs>
+            <CtrlSum>123.45</CtrlSum>
+
+            <PmtTpInf>
+                <SvcLvl>
+                    <Cd>SEPA</Cd>
+                </SvcLvl>
+            </PmtTpInf>
+
+            <ReqdExctnDt>
+                <Dt>2026-05-15</Dt>
+            </ReqdExctnDt>
+
+            <Dbtr>
+                <Nm>PLACEHOLDER Debtor Name AG</Nm>
+                <PstlAdr>
+                    <StrtNm>PLACEHOLDER Street</StrtNm>
+                    <BldgNb>1</BldgNb>
+                    <PstCd>10115</PstCd>
+                    <TwnNm>Berlin</TwnNm>
+                    <Ctry>DE</Ctry>
+                </PstlAdr>
+            </Dbtr>
+            <DbtrAcct>
+                <Id>
+                    <IBAN>DE92123456789876543210</IBAN>
+                </Id>
+                <Ccy>EUR</Ccy>
+            </DbtrAcct>
+            <DbtrAgt>
+                <FinInstnId>
+                    <BICFI>BANKDEFFXXX</BICFI>
+                </FinInstnId>
+            </DbtrAgt>
+
+            <ChrgBr>SLEV</ChrgBr>
+
+            <!-- Single Credit Transfer transaction -->
+            <CdtTrfTxInf>
+                <PmtId>
+                    <InstrId>PLACEHOLDER-INSTR-0001</InstrId>
+                    <EndToEndId>PLACEHOLDER-E2E-0001</EndToEndId>
+                </PmtId>
+                <Amt>
+                    <InstdAmt Ccy="EUR">123.45</InstdAmt>
+                </Amt>
+                <CdtrAgt>
+                    <FinInstnId>
+                        <BICFI>OTHRDEFFXXX</BICFI>
+                    </FinInstnId>
+                </CdtrAgt>
+                <Cdtr>
+                    <Nm>PLACEHOLDER Creditor Name GmbH</Nm>
+                    <PstlAdr>
+                        <StrtNm>PLACEHOLDER Avenue</StrtNm>
+                        <BldgNb>42</BldgNb>
+                        <PstCd>80331</PstCd>
+                        <TwnNm>Munich</TwnNm>
+                        <Ctry>DE</Ctry>
+                    </PstlAdr>
+                </Cdtr>
+                <CdtrAcct>
+                    <Id>
+                        <IBAN>DE29876543210123456789</IBAN>
+                    </Id>
+                </CdtrAcct>
+                <RmtInf>
+                    <Ustrd>PLACEHOLDER invoice 2026-001 / contract 2026-A</Ustrd>
+                </RmtInf>
+            </CdtTrfTxInf>
+
+        </PmtInf>
+    </CstmrCdtTrfInitn>
+</Document>

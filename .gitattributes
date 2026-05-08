@@ -1,0 +1,56 @@
+# Default: auto-detect text files and normalize to LF in the repo.
+* text=auto eol=lf
+
+# C++ source
+*.cpp text diff=cpp
+*.cc  text diff=cpp
+*.cxx text diff=cpp
+*.h   text diff=cpp
+*.hpp text diff=cpp
+*.hxx text diff=cpp
+
+# Build files
+CMakeLists.txt text
+*.cmake text
+CMakePresets.json text
+vcpkg.json text
+
+# Documentation
+*.md  text diff=markdown
+*.txt text
+
+# YAML / JSON
+*.yml  text
+*.yaml text
+*.json text
+
+# Qt-specific
+*.qml text
+*.qrc text
+
+# Linux desktop
+*.desktop text
+
+# XML
+*.xml text
+*.xsd text
+
+# Windows-specific scripts must keep CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary files
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.icns  binary
+*.pdf   binary
+*.zip   binary
+*.dmg   binary
+*.exe   binary
+*.dll   binary
+*.so    binary
+*.dylib binary
