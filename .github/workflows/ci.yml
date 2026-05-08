@@ -124,21 +124,6 @@ jobs:
         if: runner.os == 'macOS'
         run: brew install autoconf autoconf-archive automake libtool coreutils
 
-      # Windows-only: redirect vcpkg's buildtrees to a short root path. Without
-      # this, qtdeclarative's deeply-nested build paths exceed MAX_PATH on
-      # Windows runners and cl.exe fails with "Cannot open compiler generated
-      # file: '': Invalid argument" (a misleading rendition of path-too-long).
-      - name: Redirect vcpkg buildtrees to short path (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force -Path C:\b | Out-Null
-          New-Item -ItemType Directory -Force -Path C:\d | Out-Null
-          New-Item -ItemType Directory -Force -Path C:\p | Out-Null
-          Add-Content $env:GITHUB_ENV "VCPKG_DEFAULT_BUILDTREES_ROOT=C:\b"
-          Add-Content $env:GITHUB_ENV "VCPKG_DEFAULT_DOWNLOADS_ROOT=C:\d"
-          Add-Content $env:GITHUB_ENV "VCPKG_DEFAULT_PACKAGES_ROOT=C:\p"
-
       # Windows-only: set up MSVC's developer-command-prompt environment so
       # cl.exe and the Windows SDK are on PATH for the cmake / vcpkg invocations
       # that follow. Without this, the Windows leg fails with the misleading
@@ -150,7 +135,26 @@ jobs:
         with:
           arch: x64
 
-      - name: Bootstrap vcpkg
+      # Windows: vcpkg goes to C:\v (short path) so qtdeclarative's deeply-
+      # nested compiler-generated paths stay under MAX_PATH. The default
+      # location D:\a\sepa-xml-viewer\sepa-xml-viewer\vcpkg\... is too long
+      # — cl.exe fails compiling files in qtquickcontrols2's universal style
+      # impl with C1083 ("Cannot open compiler generated file: '': Invalid
+      # argument"), a misleading way of saying path-too-long.
+      #
+      # Setting VCPKG_DEFAULT_BUILDTREES_ROOT does NOT work — vcpkg ignores
+      # that env var and only respects --x-buildtrees-root, which CMake's
+      # manifest-mode integration does not pass through. The real fix is to
+      # clone vcpkg itself to a short directory.
+      - name: Bootstrap vcpkg (Windows — short path)
+        if: runner.os == 'Windows'
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgDirectory: 'C:\v'
+          vcpkgGitCommitId: 'd29e8309d1cf7a7cb6998a935b2ac5b1958a7432'
+
+      - name: Bootstrap vcpkg (Linux / macOS)
+        if: runner.os != 'Windows'
         uses: lukka/run-vcpkg@v11
         with:
           # Pinned to a recent vcpkg master that includes double-conversion
@@ -159,8 +163,6 @@ jobs:
           # commit must be set as `builtin-baseline` in vcpkg.json so port
           # versions agree with this checkout.
           vcpkgGitCommitId: 'd29e8309d1cf7a7cb6998a935b2ac5b1958a7432'
-          # Don't auto-run install — CMake's manifest-mode integration kicks
-          # vcpkg off as part of configure.
 
       # Forwards the GitHub-Actions cache tokens that vcpkg's `x-gha` backend
       # needs. Sets ACTIONS_CACHE_URL and ACTIONS_RUNTIME_TOKEN for subsequent
