@@ -20,3 +20,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `README.md` expanded with project tagline, target audience, status, tech stack summary, offline-only guarantee, and links to the plan and example data.
 - `README.md` early-alpha warning callout added at the top — explicit "not for production, no warranty, cross-check before real-money decisions" notice. Reinforces the GPL `AS IS` clause in plain language for non-technical readers.
+- `plan/00-init-phase.md` §13 Phase 3: export formats expanded from CSV / JSON / PDF to **Excel `.xlsx`, CSV, JSON, and PDF**. Adds an *Export formats* design-notes block explaining why CSV and Excel are not interchangeable for the target audience (locale separators, currency cells, date coercion), naming `libxlsxwriter` (vcpkg, BSD-2-Clause) for the `.xlsx` write path, and noting Excel may bump to Phase 2 if user demand precedes the rest of Phase 3.
