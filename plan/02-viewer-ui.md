@@ -258,9 +258,11 @@ What that means in practice:
 - Every user-visible string in QML wrapped in `qsTr("...")` from day one. No hard-coded English in QML files.
 - Number, date, currency formatting uses `Qt.locale()` from day one — never hand-rolled.
 - The plain-language error table (see §8.4) is populated for English with a structure that maps cleanly to one Qt Linguist `.ts` file per locale.
-- `lupdate` runs as part of the build; the resulting `.ts` file lives under `src/i18n/`.
+- `lupdate` runs as part of the build; the resulting `.ts` files live under `src/i18n/`.
 
-The cheap part is doing it correctly from the first commit. The expensive part is retrofitting it. Phase 3 then ships actual translations (German first, given the audience and SEPA market) — no QML changes needed, just translation work in Linguist.
+The cheap part is doing it correctly from the first commit. The expensive part is retrofitting it. Phase 3 then ships actual translations.
+
+**Committed Phase 3 languages:** English, German, Dutch, French. The full plan — language reasoning, what is and isn't translated, per-locale formatting tables, banking glossary, the data-vs-display split that keeps SEPA data interoperable across the EU regardless of UI locale, translation workflow, testing — lives in [`plan/04-localization.md`](04-localization.md). Phase 2 implementation must satisfy that plan's Phase 2 readiness criteria (`plan/04` §8): every string in `qsTr()`, every formatting via `Qt.locale()`, source-language `.ts` populated, `lupdate` / `lrelease` integrated into the build.
 
 ---
 
