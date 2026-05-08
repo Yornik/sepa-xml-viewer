@@ -121,7 +121,12 @@ jobs:
       - name: Bootstrap vcpkg
         uses: lukka/run-vcpkg@v11
         with:
-          vcpkgGitCommitId: 'b322364f06308bdd24823f9d8f03fe0cc86fd46f'
+          # Pinned to a recent vcpkg master that includes double-conversion
+          # 3.4.0 — earlier baselines shipped 3.3.0 which fails to configure
+          # on macos-14 arm64 inside vcpkg-parallel-configure. The same
+          # commit must be set as `builtin-baseline` in vcpkg.json so port
+          # versions agree with this checkout.
+          vcpkgGitCommitId: 'd29e8309d1cf7a7cb6998a935b2ac5b1958a7432'
           # Don't auto-run install — CMake's manifest-mode integration kicks
           # vcpkg off as part of configure.
 
