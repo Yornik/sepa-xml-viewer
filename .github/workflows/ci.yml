@@ -52,10 +52,24 @@ jobs:
         with:
           fetch-depth: 0  # full history so `git describe --tags` works for ProjectVersion.cmake
 
-      - name: Verify Ninja is on PATH
-        # GitHub-hosted runner images preinstall Ninja on all three OSes; this
-        # step is just a sanity check so a missing ninja shows up early.
-        run: ninja --version
+      - name: Verify runner toolchain
+        # GitHub-hosted runner images preinstall Ninja on all three OSes; we
+        # also print the architecture so the macos-14 runner is visibly arm64
+        # in the log (catches cases where the runner image silently swaps).
+        run: |
+          ninja --version
+          echo "uname:"
+          uname -a || echo "uname not available"
+
+      # macos-14 runners ship a recent SDK (Xcode 15+); some vcpkg ports —
+      # double-conversion is the canonical example — fail to configure unless
+      # MACOSX_DEPLOYMENT_TARGET is explicit. Pinning to 12.0 also matches
+      # Qt 6.5+'s minimum supported macOS.
+      - name: Pin macOS deployment target
+        if: runner.os == 'macOS'
+        run: |
+          echo "MACOSX_DEPLOYMENT_TARGET=12.0" >> $GITHUB_ENV
+          echo "CMAKE_OSX_DEPLOYMENT_TARGET=12.0" >> $GITHUB_ENV
 
       # Linux-only: Qt's runtime needs OpenGL + xkbcommon + dbus headers to
       # build. macOS / Windows runners ship with everything Qt needs.
