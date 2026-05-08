@@ -1,5 +1,12 @@
 # SEPA XML Viewer
 
+> [!WARNING]
+> **Early alpha — not ready for production use.**
+>
+> This software is in active early-alpha development. It is **read-only** (it does not modify, write, or sign payment data) and runs **fully offline** (no network access, no telemetry, no cloud), so pointing it at sensitive files should be safe. That said, **no correctness or reliability guarantees are made**: the parser may misinterpret edge cases, validation may miss errors, and behavior may change between releases without notice.
+>
+> The GPL-3.0-or-later license already disclaims warranty in formal terms (the "AS IS" clause); this notice repeats that in plain language. If you depend on a payment file's contents being interpreted correctly for a real-money decision (releasing payroll, audit findings, regulatory submission), cross-check against another tool until this project reaches a stable 1.0 release.
+
 A cross-platform desktop **viewer** for SEPA payment XML messages — the ISO 20022 files European banks, PSPs, and businesses exchange (`pain.001`, `pain.008`, `camt.05x`, the SRTP `pain.013` / `pain.014` family, and friends).
 
 ## Who this is for
