@@ -1,0 +1,9 @@
+#pragma once
+
+namespace sepa {
+
+inline constexpr const char* kVersionString       = "@SEPA_VIEWER_VERSION_STRING@";
+inline constexpr const char* kVersionGitDescribe  = "@SEPA_VIEWER_VERSION_GIT_DESCRIBE@";
+inline constexpr bool        kVersionIsDirty      = (@SEPA_VIEWER_VERSION_DIRTY@ != 0);
+
+}  // namespace sepa

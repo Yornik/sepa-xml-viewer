@@ -1,0 +1,9 @@
+{
+    "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+    "name": "sepa-xml-viewer",
+    "version-string": "0.0.0",
+    "description": "Cross-platform offline viewer for SEPA payment XML messages.",
+    "homepage": "https://github.com/Yornik/sepa-xml-viewer",
+    "license": "GPL-3.0-or-later",
+    "dependencies": []
+}
