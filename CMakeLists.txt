@@ -20,4 +20,12 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 include(cmake/CompilerWarnings.cmake)
 include(cmake/ProjectVersion.cmake)
 
+# Qt 6.5+ — Quick (QML) only. No Widgets, no Network. The "no Network" choice
+# is enforced at the vcpkg-manifest level (qtbase ships without the network
+# feature) per plan/00-init-phase.md §1 Goal #9 (offline-only by build-time
+# guarantee). On a system Qt the Network module may still be present on disk;
+# we simply do not link it.
+find_package(Qt6 6.5 REQUIRED COMPONENTS Gui Quick)
+qt_standard_project_setup(REQUIRES 6.5)
+
 add_subdirectory(src)
