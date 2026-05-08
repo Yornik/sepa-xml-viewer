@@ -1,5 +1,8 @@
+#include <QGuiApplication>
+#include <QQmlApplicationEngine>
+#include <QString>
+
 #include <iostream>
-#include <string>
 #include <string_view>
 
 #include "sepa/version.h"
@@ -21,11 +24,13 @@ void print_help() {
         << kAppName << " - read-only offline viewer for SEPA payment XML messages.\n"
         << "\n"
         << "Usage:\n"
-        << "  sepa-xml-viewer [--version] [--help]\n"
+        << "  sepa-xml-viewer            Open the (currently empty) main window.\n"
+        << "  sepa-xml-viewer --version  Print version and exit.\n"
+        << "  sepa-xml-viewer --help     Print this help text and exit.\n"
         << "\n"
-        << "Phase 0 build: this binary is the build-pipeline smoke test.\n"
-        << "It does not yet open SEPA files; running it with --version\n"
-        << "confirms that the build, linking, and version-injection wiring works.\n";
+        << "Phase 0 build: a window opens with a placeholder label. SEPA parsing,\n"
+        << "drag-and-drop, and the rest of the audience-facing UX arrive in later\n"
+        << "phases (see plan/02-viewer-ui.md).\n";
 }
 
 }  // namespace
@@ -43,7 +48,19 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    print_version();
-    print_help();
-    return 0;
+    QGuiApplication app(argc, argv);
+    QGuiApplication::setApplicationName(QStringLiteral("SEPA XML Viewer"));
+    QGuiApplication::setOrganizationName(QStringLiteral("Yornik"));
+    QGuiApplication::setApplicationVersion(QString::fromUtf8(sepa::kVersionString));
+
+    QQmlApplicationEngine engine;
+    QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed,
+                     &app, []() { QCoreApplication::exit(1); },
+                     Qt::QueuedConnection);
+    engine.loadFromModule(QStringLiteral("sepa.viewer"), QStringLiteral("Main"));
+    if (engine.rootObjects().isEmpty()) {
+        return 1;
+    }
+
+    return app.exec();
 }

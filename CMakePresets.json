@@ -16,6 +16,15 @@
             }
         },
         {
+            "name": "ci-base",
+            "hidden": true,
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            },
+            "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+        },
+        {
             "name": "dev-debug",
             "displayName": "Local Debug build",
             "inherits": "base",
@@ -34,26 +43,26 @@
         {
             "name": "ci-linux",
             "displayName": "CI build on Linux (Release)",
-            "inherits": "base",
+            "inherits": "ci-base",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release"
+                "VCPKG_TARGET_TRIPLET": "x64-linux"
             }
         },
         {
             "name": "ci-macos",
             "displayName": "CI build on macOS (Release, arm64)",
-            "inherits": "base",
+            "inherits": "ci-base",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "CMAKE_OSX_ARCHITECTURES": "arm64"
+                "CMAKE_OSX_ARCHITECTURES": "arm64",
+                "VCPKG_TARGET_TRIPLET": "arm64-osx"
             }
         },
         {
             "name": "ci-windows",
             "displayName": "CI build on Windows (Release, x64)",
-            "inherits": "base",
+            "inherits": "ci-base",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release"
+                "VCPKG_TARGET_TRIPLET": "x64-windows"
             }
         }
     ],
