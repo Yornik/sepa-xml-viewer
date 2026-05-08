@@ -71,13 +71,20 @@ jobs:
           echo "MACOSX_DEPLOYMENT_TARGET=12.0" >> $GITHUB_ENV
           echo "CMAKE_OSX_DEPLOYMENT_TARGET=12.0" >> $GITHUB_ENV
 
-      # Linux-only: Qt's runtime needs OpenGL + xkbcommon + dbus headers to
-      # build. macOS / Windows runners ship with everything Qt needs.
+      # Linux-only: Qt's runtime needs OpenGL + xkbcommon + dbus headers, and
+      # several vcpkg ports (libb2, etc.) need GNU autotools at build time.
+      # macOS / Windows runners ship with most of what Qt needs but the
+      # autotools install step below covers libb2 on macOS too.
       - name: Install Qt build prerequisites (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
+            autoconf \
+            autoconf-archive \
+            automake \
+            libtool \
+            pkg-config \
             libgl1-mesa-dev \
             libglu1-mesa-dev \
             libegl1-mesa-dev \
@@ -106,6 +113,13 @@ jobs:
             libxrender-dev \
             libdbus-1-dev \
             xvfb
+
+      # macOS: some vcpkg ports (libb2 in particular) require autotools at
+      # build time. Xcode CLI Tools ship autoconf and automake but not
+      # autoconf-archive; install via brew defensively.
+      - name: Install autotools (macOS)
+        if: runner.os == 'macOS'
+        run: brew install autoconf autoconf-archive automake libtool
 
       # Windows-only: set up MSVC's developer-command-prompt environment so
       # cl.exe and the Windows SDK are on PATH for the cmake / vcpkg invocations
