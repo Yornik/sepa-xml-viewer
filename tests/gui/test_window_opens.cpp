@@ -28,15 +28,24 @@ std::string binary_path() {
     return p;
 }
 
+// macOS does not ship GNU `timeout`; the homebrew `coreutils` formula installs
+// it as `gtimeout`. Linux runners have it as `timeout` from coreutils-by-default.
+// Pick the right name at compile time so the test is portable across platforms.
+#if defined(__APPLE__)
+constexpr const char* kTimeoutCmd = "gtimeout";
+#else
+constexpr const char* kTimeoutCmd = "timeout";
+#endif
+
 int run_with_timeout_offscreen(const std::string& binary, int timeout_seconds) {
     // GNU coreutils `timeout` returns 124 when it had to kill the process,
     // otherwise it forwards the exit code. We accept 124 (forced kill after
     // the app survived its window) as success and any non-124 non-zero as
     // failure.
     const std::string cmd =
-        "QT_QPA_PLATFORM=offscreen "
-        "timeout --signal=TERM " + std::to_string(timeout_seconds) + " " +
-        binary + " >/dev/null 2>&1";
+        "QT_QPA_PLATFORM=offscreen " +
+        std::string(kTimeoutCmd) + " --signal=TERM " +
+        std::to_string(timeout_seconds) + " " + binary + " >/dev/null 2>&1";
     int rc = std::system(cmd.c_str());
     if (rc == -1) {
         throw std::runtime_error("std::system() failed to spawn the binary");

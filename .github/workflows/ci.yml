@@ -116,10 +116,27 @@ jobs:
 
       # macOS: some vcpkg ports (libb2 in particular) require autotools at
       # build time. Xcode CLI Tools ship autoconf and automake but not
-      # autoconf-archive; install via brew defensively.
-      - name: Install autotools (macOS)
+      # autoconf-archive; install via brew defensively. Also install
+      # coreutils for `gtimeout`, which the GUI smoke test uses (macOS does
+      # not ship GNU `timeout` anywhere on PATH).
+      - name: Install autotools + coreutils (macOS)
         if: runner.os == 'macOS'
-        run: brew install autoconf autoconf-archive automake libtool
+        run: brew install autoconf autoconf-archive automake libtool coreutils
+
+      # Windows-only: redirect vcpkg's buildtrees to a short root path. Without
+      # this, qtdeclarative's deeply-nested build paths exceed MAX_PATH on
+      # Windows runners and cl.exe fails with "Cannot open compiler generated
+      # file: '': Invalid argument" (a misleading rendition of path-too-long).
+      - name: Redirect vcpkg buildtrees to short path (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path C:\b | Out-Null
+          New-Item -ItemType Directory -Force -Path C:\d | Out-Null
+          New-Item -ItemType Directory -Force -Path C:\p | Out-Null
+          Add-Content $env:GITHUB_ENV "VCPKG_DEFAULT_BUILDTREES_ROOT=C:\b"
+          Add-Content $env:GITHUB_ENV "VCPKG_DEFAULT_DOWNLOADS_ROOT=C:\d"
+          Add-Content $env:GITHUB_ENV "VCPKG_DEFAULT_PACKAGES_ROOT=C:\p"
 
       # Windows-only: set up MSVC's developer-command-prompt environment so
       # cl.exe and the Windows SDK are on PATH for the cmake / vcpkg invocations
