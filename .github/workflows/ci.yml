@@ -15,18 +15,15 @@ concurrency:
 
 permissions:
   contents: read
-  # vcpkg's `x-gha` binary-cache backend in `readwrite` mode needs `actions:
-  # write` (not `read`). With only `read`, vcpkg silently fails to populate
-  # the cache — every run rebuilds Qt from source, ~1h per OS. See vcpkg docs:
-  # https://learn.microsoft.com/vcpkg/users/binarycaching#gha
-  actions: write
 
 env:
-  # vcpkg binary caching via the GitHub Actions cache backend. Without this,
-  # every CI run rebuilds Qt from source (~30-45 minutes per OS). With it, the
-  # first push warms the cache (~50 minutes total across the matrix) and every
-  # push afterwards finishes in a few minutes per OS.
-  VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+  # vcpkg binary caching via a local file-based binary cache, persisted across
+  # runs by actions/cache. The original plan was vcpkg's `x-gha` provider, but
+  # that backend was removed in current vcpkg master ("The 'x-gha' binary
+  # caching backend has been removed" warning at install time). The file-based
+  # `files,<path>,readwrite` source is part of vcpkg's stable surface and is
+  # what the official replacement-recipes recommend.
+  VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/vcpkg-binary-cache,readwrite"
   CMAKE_BUILD_PARALLEL_LEVEL: 4
 
 jobs:
@@ -164,24 +161,26 @@ jobs:
           # versions agree with this checkout.
           vcpkgGitCommitId: 'd29e8309d1cf7a7cb6998a935b2ac5b1958a7432'
 
-      # Forwards the GitHub-Actions cache tokens that vcpkg's `x-gha` backend
-      # needs. Sets ACTIONS_CACHE_URL and ACTIONS_RUNTIME_TOKEN for subsequent
-      # steps. Strictly necessary for binary caching to work.
-      - name: Forward GitHub Actions cache tokens to vcpkg
-        uses: actions/github-script@v7
+      # File-based vcpkg binary cache persisted by actions/cache. vcpkg writes
+      # compiled package archives to this directory; actions/cache uploads
+      # them at job end and restores them at job start, keyed by the manifest
+      # hash so a vcpkg.json change invalidates the cache.
+      #
+      # The cache scope is per-OS (and per-triplet implicitly via the OS) so
+      # macOS arm64 binaries don't collide with Windows x64 ones.
+      - name: Restore vcpkg binary cache
+        uses: actions/cache@v4
         with:
-          script: |
-            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+          path: ${{ github.workspace }}/vcpkg-binary-cache
+          key: vcpkg-bincache-${{ matrix.os }}-${{ hashFiles('vcpkg.json') }}-v1
+          restore-keys: |
+            vcpkg-bincache-${{ matrix.os }}-
 
-      # One-line diagnostics so a future "the cache isn't populating" debug
-      # session takes one log read instead of a guess. Prints whether the
-      # tokens were forwarded and which binary-source spec vcpkg will use.
       - name: Verify vcpkg binary-cache configuration
         run: |
           echo "VCPKG_BINARY_SOURCES=${VCPKG_BINARY_SOURCES:-(unset)}"
-          echo "ACTIONS_CACHE_URL set: ${ACTIONS_CACHE_URL:+yes}${ACTIONS_CACHE_URL:-no}"
-          echo "ACTIONS_RUNTIME_TOKEN set: ${ACTIONS_RUNTIME_TOKEN:+yes}${ACTIONS_RUNTIME_TOKEN:-no}"
+          echo "Cache dir contents (may be empty on first run):"
+          ls -la "${{ github.workspace }}/vcpkg-binary-cache" 2>/dev/null || echo "(directory not yet created)"
         shell: bash
 
       - name: Configure
