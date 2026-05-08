@@ -21,6 +21,7 @@ Scope of this document: Phase 0 only — establish the development infrastructur
 6. A CI workflow on every push and pull request that runs the full matrix (Linux, macOS, Windows) and is required to be green before merge.
 7. A release workflow triggered by `v*` tags that produces native installers on each platform and uploads them to a GitHub Release.
 8. CLAUDE.md and a `plan/` directory committed so future contributors (human or agent) can pick up context.
+9. **Offline-only by build-time guarantee.** The application binary links no networking libraries; Qt is configured without its `network` feature in the dependency manifest. No HTTP client, no telemetry, no auto-update, no runtime schema fetch. The constraint lives in `vcpkg.json` and is enforced at every CI build, not just in user-facing copy.
 
 ### Non-Goals (deferred to later phases — do NOT build now)
 
@@ -31,8 +32,27 @@ Scope of this document: Phase 0 only — establish the development infrastructur
 - Auto-update / Sparkle / WinSparkle integrations.
 - Linux distro repositories (PPA, Flatpak, Snap). The release pipeline produces installable artifacts; pushing them to third-party repos is a later decision.
 - Codecov, Coveralls, CodeQL, fuzzing infrastructure. They are not high-value gates at this stage and add CI noise.
+- **Networking of any kind.** No HTTP/HTTPS client, no WebSocket, no auto-update fetcher, no telemetry collector, no runtime schema downloader. The viewer's job is to read a file from disk and render it; the network is not part of that job. See Goal #9 — this is enforced at the dependency manifest, not just policy.
 
 The single sentence of definition: **`git tag v0.0.1 && git push --tags` produces installers for Linux, macOS, and Windows on a GitHub Release, and `main` is green across the matrix.** Everything in this plan exists to make that one sentence true.
+
+### Target audience
+
+The primary user is **a non-technical office worker** — HR professionals, payroll administrators, accountants, finance staff — who occasionally needs to open a SEPA file their bank or payroll system produced and understand what is in it. They are not programmers, do not know XPath, and have not read the ISO 20022 specification. They want to open a file, see "who paid whom what, when," and trust the tool not to break their machine.
+
+This audience drives several Phase 1+ decisions, captured here so they are not re-derived later:
+
+- **Plain-language UI by default**, with an opt-in technical mode that exposes raw ISO 20022 element names. Examples: "Sender" instead of "Debtor", "Recipient" instead of "Creditor", "€123.45" instead of "EUR 123.45", "15 May 2026" instead of "2026-05-15".
+- **Drag-and-drop file open** as the primary entry point. File-Open dialog as a fallback, command-line file argument as a tertiary path.
+- **Validation errors translated into plain language**, e.g. "the sender's account number (IBAN) failed its checksum — it may have been mistyped" instead of "element `IBAN` violates xs:pattern restriction `[A-Z]{2}[0-9]{2}[a-zA-Z0-9]{1,30}`".
+- **No CLI surface as user experience**. `--version` exists only for the release-pipeline smoke gate; the audience does not use the terminal.
+- **Localized formatting** — currency, date, number formatting follow the OS locale. A US/UK user sees "£" or "$" in their own conventions; a German user sees "€1.234,56".
+- **Qt Quick (QML) reinforced as the GUI choice** over Qt Widgets — the audience benefits from polished modern controls and theming rather than the developer-tool aesthetic Qt Widgets produces by default. See §3.4 for the full reasoning.
+- **Internationalization** via Qt Linguist (English plus at least one major EU language at first) is part of the Phase 3 commitment, not Phase 2.
+- **Accessibility is not optional** when the audience includes office users on managed devices; screen-reader support, keyboard navigation, and font scaling are tracked as Phase 2 deliverables, not "nice-to-haves."
+- **Trust signals matter more than functionality at first impression.** A real icon (not a placeholder), a code-signed installer (eventually), a clear "this app does not access the internet" message, and an unambiguous "read-only" status visible in the UI all build the trust the audience needs to actually open a payroll file.
+
+Init phase (this plan) does **not** deliver any of these features. It records them so Phase 1+ planning starts from the right premise.
 
 ---
 
@@ -133,8 +153,9 @@ Each decision below states the choice, reasoning, and what would make us reverse
 ### 3.4 GUI framework — Qt 6 (Qt Quick / QML)
 
 - **Qt 6.7+** with **Qt Quick (QML)** as the primary UI layer; C++ provides the parser and exposes models to QML via `Q_PROPERTY` / `QAbstractItemModel`.
-- Reasoning: the user asked for a "modern GUI viewer." Qt Quick is GPU-accelerated, declarative, supports modern theming (Material, Universal, Fusion, Basic), animations, and high-DPI handling out of the box. Qt Widgets remains the more conservative power-user toolkit but produces an aesthetic that reads as legacy on Windows 11 and macOS Sequoia. Qt 6 ships an upgraded `TreeView` and table primitives in QML which were the historical reasons to fall back to Widgets.
+- Reasoning: the user asked for a "modern GUI viewer." Qt Quick is GPU-accelerated, declarative, supports modern theming (Material, Universal, Fusion, Basic), animations, and high-DPI handling out of the box. The target audience (HR / non-technical office users — see §1 *Target audience*) reinforces this choice: Qt Widgets produces an aesthetic that reads as a developer tool, while Qt Quick's modern controls and theming are closer to what office staff expect from polished desktop software they use daily. Qt Widgets remains the more conservative power-user toolkit but produces an aesthetic that reads as legacy on Windows 11 and macOS Sequoia. Qt 6 ships an upgraded `TreeView` and table primitives in QML which were the historical reasons to fall back to Widgets.
 - **Linking: dynamic only.** Reasoning: Qt LGPL v3 permits dynamic linking without source-availability obligations on the application code. Static linking would require either a commercial Qt license or shipping object files for relinking — neither acceptable for an open-source-friendly init phase. Packages will bundle the required Qt runtime libraries via CPack and `windeployqt` / `macdeployqt`.
+- **`qtbase` configured without the `network` feature** in `vcpkg.json`. This enforces the offline-only guarantee from §1 (Goal #9) at the dependency-manifest level — `QNetworkAccessManager` and friends are simply not linked into the binary, so the offline property cannot regress through accidental imports during feature work. Any future CI lint rule or grep gate that reasserts this is welcome but not the load-bearing constraint; the manifest is.
 - Reverse if: QML `TreeView` performance is unacceptable on >10MB SEPA files. Fallback is a `QQuickWidget` embedding `QTreeView` from Qt Widgets, or a full Widgets pivot. This decision is reversible at Phase 2 with no infrastructure churn — both stacks share the same build/CI/packaging plumbing.
 
 ### 3.5 XML library
@@ -202,8 +223,11 @@ sepa-xml-viewer/
 │   │   └── test_smoke.cpp          # Catch2 sanity test (1 == 1)
 │   ├── integration/
 │   │   └── test_app_starts.cpp     # spawns the binary, asserts exit code
-│   └── gui/
-│       └── tst_mainwindow.cpp      # Qt Test: launches, checks window visible
+│   ├── gui/
+│   │   └── tst_mainwindow.cpp      # Qt Test: launches, checks window visible
+│   └── example-xml/                # hand-written placeholder SEPA XML
+│       ├── README.md               # placeholder convention + file inventory
+│       └── pain.001.001.13-credit-transfer.xml
 ├── docs/                           # placeholder; agents only write here when asked
 ├── plan/
 │   └── 00-init-phase.md            # this document
@@ -460,9 +484,9 @@ Total ballpark: **~7.5 engineer-days** for init phase, dominated by CI/packaging
 ## 13. Future Phases (placeholders, not commitments)
 
 - **Phase 1 — Core SEPA parser**: pugixml-backed model for pain.001/002/008, camt.053/054, SRTP message family. XSD validation deferred or layered with Xerces-C++. Read-only; no editing.
-- **Phase 2 — Viewer UI**: QML tree view, detail pane, search, syntax-highlighted raw XML view, dark/light theming, drag-and-drop file open, recent files, "flag unstructured addresses past 2026-11-15" rule.
-- **Phase 3 — Power-user features**: multi-document tabs, export to CSV/JSON, validation report, schema-version detection.
-- **Phase 4 — Distribution polish**: code signing, Apple notarization, auto-update (Sparkle/WinSparkle), Linux distro repos.
+- **Phase 2 — Viewer UI for non-technical users** (per the audience defined in §1 *Target audience*): a "summary" view that renders messages in plain language ("Sender", "Recipient", "Amount", "When") with the underlying ISO 20022 element names exposed via a toggle; raw XML pane with syntax highlighting; tree pane for power users; localized currency / date / number formatting; drag-and-drop file open; recent files; dark / light theming; the "flag unstructured addresses past 2026-11-15" rule; plain-language validation error messages translating XSD violations. Accessibility (screen-reader, keyboard navigation, font scaling) lands here, not later.
+- **Phase 3 — Power-user features and i18n**: multi-document tabs, export to CSV / JSON / PDF, validation report, schema-version detection, internationalization via Qt Linguist (English plus at least one major EU language).
+- **Phase 4 — Distribution polish**: code signing, Apple notarization, Linux distro repos / package-manager presence (so updates flow through the OS-level package manager rather than an in-app updater). **Auto-update is explicitly NOT in scope** — it would violate the offline-only guarantee from §1 Goal #9. Users update by downloading a new installer or by their package manager.
 - **Phase 5 — Optional**: CLI `sepa-xml validate`/`sepa-xml dump` companion binary (reuses `src/core` library), WASM build for an in-browser viewer.
 
 These are not commitments; they exist so reviewers can see this init phase isn't designed in isolation.
