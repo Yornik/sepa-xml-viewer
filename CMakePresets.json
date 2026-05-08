@@ -1,0 +1,73 @@
+{
+    "version": 6,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 25,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "base",
+            "hidden": true,
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            }
+        },
+        {
+            "name": "dev-debug",
+            "displayName": "Local Debug build",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "dev-release",
+            "displayName": "Local Release build",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "ci-linux",
+            "displayName": "CI build on Linux (Release)",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "ci-macos",
+            "displayName": "CI build on macOS (Release, arm64)",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_OSX_ARCHITECTURES": "arm64"
+            }
+        },
+        {
+            "name": "ci-windows",
+            "displayName": "CI build on Windows (Release, x64)",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        }
+    ],
+    "buildPresets": [
+        {"name": "dev-debug", "configurePreset": "dev-debug"},
+        {"name": "dev-release", "configurePreset": "dev-release"},
+        {"name": "ci-linux", "configurePreset": "ci-linux"},
+        {"name": "ci-macos", "configurePreset": "ci-macos"},
+        {"name": "ci-windows", "configurePreset": "ci-windows"}
+    ],
+    "testPresets": [
+        {"name": "dev-debug", "configurePreset": "dev-debug", "output": {"outputOnFailure": true}},
+        {"name": "ci-linux", "configurePreset": "ci-linux", "output": {"outputOnFailure": true}},
+        {"name": "ci-macos", "configurePreset": "ci-macos", "output": {"outputOnFailure": true}},
+        {"name": "ci-windows", "configurePreset": "ci-windows", "output": {"outputOnFailure": true}}
+    ]
+}
