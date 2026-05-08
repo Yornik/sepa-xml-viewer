@@ -93,6 +93,17 @@ jobs:
             libdbus-1-dev \
             xvfb
 
+      # Windows-only: set up MSVC's developer-command-prompt environment so
+      # cl.exe and the Windows SDK are on PATH for the cmake / vcpkg invocations
+      # that follow. Without this, the Windows leg fails with the misleading
+      # "CMake was unable to find a build program corresponding to Ninja" —
+      # Ninja IS on PATH, it's the C++ compiler that's missing.
+      - name: Set up MSVC environment (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
       - name: Bootstrap vcpkg
         uses: lukka/run-vcpkg@v11
         with:
