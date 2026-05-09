@@ -17,22 +17,26 @@ if(MSVC)
     target_compile_definitions(gui_tests PRIVATE _CRT_SECURE_NO_WARNINGS)
 endif()
 
-# Locate Qt's plugin directory so the binary can find its platform plugins
-# (offscreen, etc.) at runtime. vcpkg-installed Qt does NOT bake an RPATH that
-# points at the plugins directory, so without QT_PLUGIN_PATH the runtime fails
-# with `qt.qpa.plugin: Could not find the Qt platform plugin "offscreen" in ""`.
-get_target_property(_qt6_core_loc Qt6::Core LOCATION)
-get_filename_component(_qt6_lib_dir "${_qt6_core_loc}" DIRECTORY)
-set(_qt6_plugins_dir "${_qt6_lib_dir}/../plugins")
-cmake_path(NORMAL_PATH _qt6_plugins_dir)
+# Note on Qt plugin discovery:
+#
+# vcpkg-installed Qt does NOT bake a runtime plugin path into the binary, so a
+# bare run of the GUI smoke fails with `qt.qpa.plugin: Could not find the Qt
+# platform plugin "offscreen" in ""`. We tried setting QT_PLUGIN_PATH via this
+# catch_discover_tests PROPERTIES ENVIRONMENT call — the env var did not
+# actually reach the spawned test process for reasons we couldn't trace
+# cleanly. Falling back to setting QT_PLUGIN_PATH at the workflow level via
+# $GITHUB_ENV before the test step (.github/workflows/ci.yml) is more reliable
+# and is what currently does the job. Local builds find Qt's plugins via the
+# brew Qt's compiled-in path, so they don't need QT_PLUGIN_PATH set.
+#
+# If you make this CMake-level setting work in the future, the env-var spec is:
+#     SEPA_VIEWER_BINARY=$<TARGET_FILE:sepa-xml-viewer>;QT_PLUGIN_PATH=<plugins>
+# but the workflow setup will still work as a belt-and-suspenders.
 
-# The GUI smoke launches the actual binary with QT_QPA_PLATFORM=offscreen so it
-# works on CI runners that have no display. CMake provides the path the same
-# way the integration layer does, plus QT_PLUGIN_PATH as discussed above.
 catch_discover_tests(gui_tests
     TEST_PREFIX "gui."
     PROPERTIES
-        ENVIRONMENT "SEPA_VIEWER_BINARY=$<TARGET_FILE:sepa-xml-viewer>;QT_PLUGIN_PATH=${_qt6_plugins_dir}"
+        ENVIRONMENT "SEPA_VIEWER_BINARY=$<TARGET_FILE:sepa-xml-viewer>"
 )
 
 add_dependencies(gui_tests sepa-xml-viewer)
