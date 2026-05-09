@@ -38,10 +38,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install clang-format
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends clang-format
+      # apt's `clang-format` differs by Ubuntu release (jammy=14, noble=18) and
+      # diverges from what brew / latest LLVM produce — same .clang-format
+      # config, materially different output between versions. Pin via pip's
+      # cross-platform clang-format wheel so CI and dev machines format
+      # identically. Bump the version in lockstep with team-wide updates.
+      - name: Install pinned clang-format (18.1.8)
+        run: pip install clang-format==18.1.8
 
       - name: Check formatting
         run: |
@@ -67,10 +70,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install clang-tidy
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends clang-tidy
+      # Same rationale as the lint job: pin clang-tidy via pip so CI and dev
+      # machines run the same checks. Bump in lockstep with clang-format.
+      - name: Install pinned clang-tidy (18.1.8)
+        run: pip install clang-tidy==18.1.8
 
       # Restore the same vcpkg binary cache the matrix build populated, then
       # configure (without rebuilding) so clang-tidy has a compile_commands.json

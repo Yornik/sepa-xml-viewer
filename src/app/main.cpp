@@ -5,9 +5,9 @@
 #include <QObject>
 #include <QQmlApplicationEngine>
 #include <QString>
-#include <Qt>
 
 #include <iostream>
+#include <Qt>
 #include <string_view>
 
 namespace {
