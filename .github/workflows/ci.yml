@@ -89,6 +89,7 @@ jobs:
             libfontconfig1-dev \
             libfreetype-dev \
             libx11-dev \
+            libx11-xcb-dev \
             libxcb1-dev \
             libxcb-cursor-dev \
             libxcb-glx0-dev \
@@ -175,6 +176,10 @@ jobs:
           key: vcpkg-bincache-${{ matrix.os }}-${{ hashFiles('vcpkg.json') }}-v1
           restore-keys: |
             vcpkg-bincache-${{ matrix.os }}-
+          # Persist the cache even if subsequent steps fail. Without this, a
+          # test failure after a successful Qt build means the cache (~700 MB)
+          # is thrown away, forcing the next run to rebuild Qt from source.
+          save-always: true
 
       - name: Verify vcpkg binary-cache configuration
         run: |

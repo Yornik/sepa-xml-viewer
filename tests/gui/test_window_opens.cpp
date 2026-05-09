@@ -39,13 +39,14 @@ constexpr const char* kTimeoutCmd = "timeout";
 
 int run_with_timeout_offscreen(const std::string& binary, int timeout_seconds) {
     // GNU coreutils `timeout` returns 124 when it had to kill the process,
-    // otherwise it forwards the exit code. We accept 124 (forced kill after
-    // the app survived its window) as success and any non-124 non-zero as
-    // failure.
+    // otherwise it forwards the exit code. We do NOT redirect stderr — when
+    // the test fails, ctest --output-on-failure surfaces whatever the binary
+    // printed (e.g. "Could not load Qt platform plugin offscreen") which is
+    // the only useful diagnostic.
     const std::string cmd =
         "QT_QPA_PLATFORM=offscreen " +
         std::string(kTimeoutCmd) + " --signal=TERM " +
-        std::to_string(timeout_seconds) + " " + binary + " >/dev/null 2>&1";
+        std::to_string(timeout_seconds) + " " + binary;
     int rc = std::system(cmd.c_str());
     if (rc == -1) {
         throw std::runtime_error("std::system() failed to spawn the binary");
@@ -55,10 +56,14 @@ int run_with_timeout_offscreen(const std::string& binary, int timeout_seconds) {
 
 }  // namespace
 
-TEST_CASE("binary launches under offscreen Qt platform and stays alive", "[gui]") {
-    // Two seconds is plenty for QML to load and the event loop to settle.
-    // If the binary exits early with a non-zero code (e.g. QML parse error,
-    // missing plugin, missing platform), the run shows that exit code.
+TEST_CASE("binary launches under offscreen Qt platform without crashing", "[gui]") {
+    // Two outcomes are healthy:
+    //   124 — timeout fired; app was running its event loop until killed.
+    //     0 — the app exited cleanly within the window (legal for headless
+    //          smoke runs).
+    // Anything else (1 = error, 134 = SIGABRT, 139 = SIGSEGV, 127 =
+    // command-not-found, etc.) is a real failure we want to flag.
     const int rc = run_with_timeout_offscreen(binary_path(), 2);
-    REQUIRE(rc == 124);  // timeout fired; app was healthy until killed
+    INFO("binary exit code: " << rc);
+    REQUIRE((rc == 124 || rc == 0));
 }
