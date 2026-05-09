@@ -169,17 +169,20 @@ jobs:
       #
       # The cache scope is per-OS (and per-triplet implicitly via the OS) so
       # macOS arm64 binaries don't collide with Windows x64 ones.
+      # Cache restore + save are split into two steps so the save runs even
+      # when subsequent steps (build, test) fail. The unified actions/cache
+      # action's `save-always: true` input was deprecated — it didn't actually
+      # save on failure — and the official recommendation is to use
+      # actions/cache/restore + actions/cache/save with `if: always()`. See
+      # https://github.com/actions/cache/tree/main/save#always-save-cache
       - name: Restore vcpkg binary cache
-        uses: actions/cache@v4
+        id: cache-restore
+        uses: actions/cache/restore@v4
         with:
           path: ${{ github.workspace }}/vcpkg-binary-cache
           key: vcpkg-bincache-${{ matrix.os }}-${{ hashFiles('vcpkg.json') }}-v1
           restore-keys: |
             vcpkg-bincache-${{ matrix.os }}-
-          # Persist the cache even if subsequent steps fail. Without this, a
-          # test failure after a successful Qt build means the cache (~700 MB)
-          # is thrown away, forcing the next run to rebuild Qt from source.
-          save-always: true
 
       - name: Verify vcpkg binary-cache configuration
         run: |
@@ -207,3 +210,15 @@ jobs:
       - name: Test (macOS / Windows)
         if: runner.os != 'Linux'
         run: ctest --preset ${{ matrix.preset }} --output-on-failure
+
+      # Save the populated vcpkg binary cache even when build / test failed
+      # earlier in this job. `if: always()` is the only reliable way to do
+      # this; the deprecated `save-always: true` on the unified cache action
+      # silently did nothing. Skipped automatically when the primary key
+      # already matches an existing cache entry (no upload, no churn).
+      - name: Save vcpkg binary cache
+        if: always() && steps.cache-restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ github.workspace }}/vcpkg-binary-cache
+          key: vcpkg-bincache-${{ matrix.os }}-${{ hashFiles('vcpkg.json') }}-v1
