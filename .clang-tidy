@@ -20,6 +20,7 @@ Checks: >
   misc-*,
   -misc-non-private-member-variables-in-classes,
   -misc-no-recursion,
+  -misc-include-cleaner,
   modernize-*,
   -modernize-use-trailing-return-type,
   -modernize-avoid-c-arrays,
@@ -29,7 +30,8 @@ Checks: >
   -readability-magic-numbers,
   -readability-uppercase-literal-suffix,
   -readability-identifier-length,
-  -readability-function-cognitive-complexity
+  -readability-function-cognitive-complexity,
+  -readability-static-accessed-through-instance
 
 WarningsAsErrors: '*'
 HeaderFilterRegex: '.*src/.*\.(h|hpp)$'

@@ -8,22 +8,21 @@
 // real Phase 0 win). It checks the binary is healthy at runtime by giving it
 // a short window to crash and asserting it doesn't.
 
-#include <catch2/catch_test_macros.hpp>
-
 #include <array>
 #include <cstdio>
 #include <cstdlib>
 #include <stdexcept>
 #include <string>
 
+#include <catch2/catch_test_macros.hpp>
+
 namespace {
 
 std::string binary_path() {
     const char* p = std::getenv("SEPA_VIEWER_BINARY");
     if (p == nullptr || p[0] == '\0') {
-        throw std::runtime_error(
-            "SEPA_VIEWER_BINARY is not set; GUI tests must be run via "
-            "ctest --preset <preset>, which injects the binary path.");
+        throw std::runtime_error("SEPA_VIEWER_BINARY is not set; GUI tests must be run via "
+                                 "ctest --preset <preset>, which injects the binary path.");
     }
     return p;
 }
@@ -37,17 +36,16 @@ constexpr const char* kTimeoutCmd = "gtimeout";
 constexpr const char* kTimeoutCmd = "timeout";
 #endif
 
-int run_with_timeout_headless(const std::string& binary, const std::string& platform,
+int run_with_timeout_headless(const std::string& binary,
+                              const std::string& platform,
                               int timeout_seconds) {
     // GNU coreutils `timeout` returns 124 when it had to kill the process,
     // otherwise it forwards the exit code. We do NOT redirect stderr — when
     // the test fails, ctest --output-on-failure surfaces whatever the binary
     // printed (e.g. "Could not load Qt platform plugin offscreen") which is
     // the only useful diagnostic.
-    const std::string cmd =
-        "QT_QPA_PLATFORM=" + platform + " " +
-        std::string(kTimeoutCmd) + " --signal=TERM " +
-        std::to_string(timeout_seconds) + " " + binary;
+    const std::string cmd = "QT_QPA_PLATFORM=" + platform + " " + std::string(kTimeoutCmd) +
+                            " --signal=TERM " + std::to_string(timeout_seconds) + " " + binary;
     int rc = std::system(cmd.c_str());
     if (rc == -1) {
         throw std::runtime_error("std::system() failed to spawn the binary");

@@ -2,12 +2,12 @@
 // exists to prove that Catch2 builds, runs, and reports through CTest, plus to
 // catch trivial regressions (e.g. version.h getting deleted).
 
-#include <catch2/catch_test_macros.hpp>
+#include "sepa/version.h"
 
 #include <string>
 #include <string_view>
 
-#include "sepa/version.h"
+#include <catch2/catch_test_macros.hpp>
 
 TEST_CASE("version string is populated", "[smoke]") {
     const std::string_view version = sepa::kVersionString;
