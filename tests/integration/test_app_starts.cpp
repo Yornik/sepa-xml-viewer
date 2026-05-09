@@ -55,12 +55,13 @@ struct CommandResult {
 CommandResult run(const std::string& command) {
     CommandResult result;
 
-    // Capture stdout via popen. Stderr stays on the test runner's stream so a
-    // failing run is debuggable. The redirect spelling differs between shells
-    // (POSIX `2>/dev/null` works under Git Bash on Windows runners too, since
-    // the Windows runners have `nul` symlinked into Git Bash's environment).
-    std::string cmd = command + " 2>/dev/null";
-    std::FILE* pipe = portable_popen(cmd.c_str(), "r");
+    // Capture stdout via popen; let stderr flow to the test runner's stderr
+    // (CTest's --output-on-failure captures both, so a failing run is
+    // debuggable). The previous implementation appended `2>/dev/null` to the
+    // command — bash syntax that `cmd.exe` (used by _popen on Windows)
+    // misinterprets as "write stderr to a literal file /dev/null", breaking
+    // the run on Windows. Cross-platform fix: don't redirect at all.
+    std::FILE* pipe = portable_popen(command.c_str(), "r");
     if (pipe == nullptr) {
         throw std::runtime_error("failed to popen() the binary");
     }

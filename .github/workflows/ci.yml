@@ -200,33 +200,24 @@ jobs:
       - name: Build
         run: cmake --build --preset ${{ matrix.preset }}
 
-      # vcpkg-installed Qt does not bake a runtime plugin path into the binary,
-      # so the GUI smoke test fails with `qt.qpa.plugin: Could not find the Qt
-      # platform plugin "offscreen" in ""`. Compute the plugin dir from the
-      # well-known vcpkg-installed layout and export it to subsequent steps.
-      # bash works on all three runner OSes (Windows runners have Git Bash
-      # in the default PATH).
-      - name: Compute Qt plugin path
-        shell: bash
-        run: |
-          plugins="${{ github.workspace }}/build/${{ matrix.preset }}/vcpkg_installed/${{ matrix.triplet }}/Qt6/plugins"
-          if [ ! -d "$plugins/platforms" ]; then
-            echo "WARNING: expected Qt plugin dir not found at $plugins"
-            ls -la "${{ github.workspace }}/build/${{ matrix.preset }}/vcpkg_installed/${{ matrix.triplet }}/" || true
-            exit 0
-          fi
-          echo "Qt plugin path: $plugins"
-          echo "QT_PLUGIN_PATH=$plugins" >> "$GITHUB_ENV"
-
-      # Linux's offscreen Qt platform plugin needs xvfb-run to provide a fake
-      # display server; macOS and Windows runners have a real session and run
-      # the same tests directly.
+      # Qt plugin path env vars set at step level (NOT via $GITHUB_ENV) so they
+      # reliably propagate into ctest -> test executable -> std::system shell
+      # -> the application binary. Per Qt docs, QT_QPA_PLATFORM_PLUGIN_PATH is
+      # the documented variable Qt reads to locate the platforms/ plugin
+      # directory; QT_PLUGIN_PATH is set as a general fallback. Both point at
+      # vcpkg's well-known plugin layout.
       - name: Test (Linux, under xvfb-run)
         if: runner.os == 'Linux'
+        env:
+          QT_QPA_PLATFORM_PLUGIN_PATH: ${{ github.workspace }}/build/${{ matrix.preset }}/vcpkg_installed/${{ matrix.triplet }}/Qt6/plugins/platforms
+          QT_PLUGIN_PATH: ${{ github.workspace }}/build/${{ matrix.preset }}/vcpkg_installed/${{ matrix.triplet }}/Qt6/plugins
         run: xvfb-run --auto-servernum ctest --preset ${{ matrix.preset }} --output-on-failure
 
       - name: Test (macOS / Windows)
         if: runner.os != 'Linux'
+        env:
+          QT_QPA_PLATFORM_PLUGIN_PATH: ${{ github.workspace }}/build/${{ matrix.preset }}/vcpkg_installed/${{ matrix.triplet }}/Qt6/plugins/platforms
+          QT_PLUGIN_PATH: ${{ github.workspace }}/build/${{ matrix.preset }}/vcpkg_installed/${{ matrix.triplet }}/Qt6/plugins
         run: ctest --preset ${{ matrix.preset }} --output-on-failure
 
       # Save the populated vcpkg binary cache even when build / test failed
