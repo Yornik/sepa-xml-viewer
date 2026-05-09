@@ -58,21 +58,18 @@ int run_with_timeout_headless(const std::string& binary, const std::string& plat
 }  // namespace
 
 TEST_CASE("binary launches under a headless Qt platform without crashing", "[gui]") {
-    // Try `offscreen` first (richer; supports rendering buffers). If it isn't
-    // available in the Qt build (vcpkg's qtbase[gui] doesn't always ship it
-    // on Linux), fall back to `minimal` — bundled with every Qt build that
-    // links Qt6Gui at all.
+    // Try `minimal` first (always linked statically into the binary via
+    // qt_import_plugins in src/app/CMakeLists.txt). If `offscreen` was also
+    // available at build time (vcpkg's qtbase port doesn't always build it
+    // on Linux), the static-plugin import in CMake adds it too and the
+    // second branch exercises the richer plugin.
     //
     // Two outcomes are healthy on either platform plugin:
     //   124 — timeout fired; app was running its event loop until killed.
     //     0 — the app exited cleanly within the window.
     // Anything else (1 = error, 134 = SIGABRT, 139 = SIGSEGV, 127 =
     // command-not-found) is a real failure we want to flag.
-    int rc = run_with_timeout_headless(binary_path(), "offscreen", 2);
-    INFO("offscreen exit code: " << rc);
-    if (rc != 124 && rc != 0) {
-        rc = run_with_timeout_headless(binary_path(), "minimal", 2);
-        INFO("minimal exit code: " << rc);
-    }
+    int rc = run_with_timeout_headless(binary_path(), "minimal", 2);
+    INFO("minimal exit code: " << rc);
     REQUIRE((rc == 124 || rc == 0));
 }
