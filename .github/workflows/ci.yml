@@ -1,0 +1,245 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel in-flight runs of this workflow on the same ref. Pushing a new commit
+# to a PR makes the previous run irrelevant — saving runner time and giving
+# faster feedback.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  # vcpkg binary caching via a local file-based binary cache, persisted across
+  # runs by actions/cache. The original plan was vcpkg's `x-gha` provider, but
+  # that backend was removed in current vcpkg master ("The 'x-gha' binary
+  # caching backend has been removed" warning at install time). The file-based
+  # `files,<path>,readwrite` source is part of vcpkg's stable surface and is
+  # what the official replacement-recipes recommend.
+  VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/vcpkg-binary-cache,readwrite"
+  CMAKE_BUILD_PARALLEL_LEVEL: 4
+
+jobs:
+  build-test:
+    name: ${{ matrix.os }} (${{ matrix.preset }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            preset: ci-linux
+            triplet: x64-linux
+          - os: macos-14
+            preset: ci-macos
+            triplet: arm64-osx
+          - os: windows-2022
+            preset: ci-windows
+            triplet: x64-windows
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history so `git describe --tags` works for ProjectVersion.cmake
+
+      - name: Verify runner toolchain
+        # GitHub-hosted runner images preinstall Ninja on all three OSes; we
+        # also print the architecture so the macos-14 runner is visibly arm64
+        # in the log (catches cases where the runner image silently swaps).
+        run: |
+          ninja --version
+          echo "uname:"
+          uname -a || echo "uname not available"
+
+      # macos-14 runners ship a recent SDK (Xcode 15+); some vcpkg ports —
+      # double-conversion is the canonical example — fail to configure unless
+      # MACOSX_DEPLOYMENT_TARGET is explicit. Pinning to 12.0 also matches
+      # Qt 6.5+'s minimum supported macOS.
+      - name: Pin macOS deployment target
+        if: runner.os == 'macOS'
+        run: |
+          echo "MACOSX_DEPLOYMENT_TARGET=12.0" >> $GITHUB_ENV
+          echo "CMAKE_OSX_DEPLOYMENT_TARGET=12.0" >> $GITHUB_ENV
+
+      # Linux-only: Qt's runtime needs OpenGL + xkbcommon + dbus headers, and
+      # several vcpkg ports (libb2, etc.) need GNU autotools at build time.
+      # macOS / Windows runners ship with most of what Qt needs but the
+      # autotools install step below covers libb2 on macOS too.
+      - name: Install Qt build prerequisites (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            autoconf \
+            autoconf-archive \
+            automake \
+            libtool \
+            pkg-config \
+            libgl1-mesa-dev \
+            libglu1-mesa-dev \
+            libegl1-mesa-dev \
+            libfontconfig1-dev \
+            libfreetype-dev \
+            libx11-dev \
+            libx11-xcb-dev \
+            libxcb1-dev \
+            libxcb-cursor-dev \
+            libxcb-glx0-dev \
+            libxcb-icccm4-dev \
+            libxcb-image0-dev \
+            libxcb-keysyms1-dev \
+            libxcb-randr0-dev \
+            libxcb-render-util0-dev \
+            libxcb-shape0-dev \
+            libxcb-shm0-dev \
+            libxcb-sync-dev \
+            libxcb-util-dev \
+            libxcb-xfixes0-dev \
+            libxcb-xkb-dev \
+            libxext-dev \
+            libxfixes-dev \
+            libxi-dev \
+            libxkbcommon-dev \
+            libxkbcommon-x11-dev \
+            libxrender-dev \
+            libdbus-1-dev \
+            xvfb
+
+      # macOS: some vcpkg ports (libb2 in particular) require autotools at
+      # build time. Xcode CLI Tools ship autoconf and automake but not
+      # autoconf-archive; install via brew defensively. Also install
+      # coreutils for `gtimeout`, which the GUI smoke test uses (macOS does
+      # not ship GNU `timeout` anywhere on PATH).
+      - name: Install autotools + coreutils (macOS)
+        if: runner.os == 'macOS'
+        run: brew install autoconf autoconf-archive automake libtool coreutils
+
+      # Windows-only: set up MSVC's developer-command-prompt environment so
+      # cl.exe and the Windows SDK are on PATH for the cmake / vcpkg invocations
+      # that follow. Without this, the Windows leg fails with the misleading
+      # "CMake was unable to find a build program corresponding to Ninja" —
+      # Ninja IS on PATH, it's the C++ compiler that's missing.
+      - name: Set up MSVC environment (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      # Windows: vcpkg goes to C:\v (short path) so qtdeclarative's deeply-
+      # nested compiler-generated paths stay under MAX_PATH. The default
+      # location D:\a\sepa-xml-viewer\sepa-xml-viewer\vcpkg\... is too long
+      # — cl.exe fails compiling files in qtquickcontrols2's universal style
+      # impl with C1083 ("Cannot open compiler generated file: '': Invalid
+      # argument"), a misleading way of saying path-too-long.
+      #
+      # Setting VCPKG_DEFAULT_BUILDTREES_ROOT does NOT work — vcpkg ignores
+      # that env var and only respects --x-buildtrees-root, which CMake's
+      # manifest-mode integration does not pass through. The real fix is to
+      # clone vcpkg itself to a short directory.
+      - name: Bootstrap vcpkg (Windows — short path)
+        if: runner.os == 'Windows'
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgDirectory: 'C:\v'
+          vcpkgGitCommitId: 'd29e8309d1cf7a7cb6998a935b2ac5b1958a7432'
+
+      - name: Bootstrap vcpkg (Linux / macOS)
+        if: runner.os != 'Windows'
+        uses: lukka/run-vcpkg@v11
+        with:
+          # Pinned to a recent vcpkg master that includes double-conversion
+          # 3.4.0 — earlier baselines shipped 3.3.0 which fails to configure
+          # on macos-14 arm64 inside vcpkg-parallel-configure. The same
+          # commit must be set as `builtin-baseline` in vcpkg.json so port
+          # versions agree with this checkout.
+          vcpkgGitCommitId: 'd29e8309d1cf7a7cb6998a935b2ac5b1958a7432'
+
+      # File-based vcpkg binary cache persisted by actions/cache. vcpkg writes
+      # compiled package archives to this directory; actions/cache uploads
+      # them at job end and restores them at job start, keyed by the manifest
+      # hash so a vcpkg.json change invalidates the cache.
+      #
+      # The cache scope is per-OS (and per-triplet implicitly via the OS) so
+      # macOS arm64 binaries don't collide with Windows x64 ones.
+      # Cache restore + save are split into two steps so the save runs even
+      # when subsequent steps (build, test) fail. The unified actions/cache
+      # action's `save-always: true` input was deprecated — it didn't actually
+      # save on failure — and the official recommendation is to use
+      # actions/cache/restore + actions/cache/save with `if: always()`. See
+      # https://github.com/actions/cache/tree/main/save#always-save-cache
+      - name: Restore vcpkg binary cache
+        id: cache-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ github.workspace }}/vcpkg-binary-cache
+          key: vcpkg-bincache-${{ matrix.os }}-${{ hashFiles('vcpkg.json') }}-v1
+          restore-keys: |
+            vcpkg-bincache-${{ matrix.os }}-
+
+      - name: Verify vcpkg binary-cache configuration
+        run: |
+          echo "VCPKG_BINARY_SOURCES=${VCPKG_BINARY_SOURCES:-(unset)}"
+          echo "Cache dir contents (may be empty on first run):"
+          ls -la "${{ github.workspace }}/vcpkg-binary-cache" 2>/dev/null || echo "(directory not yet created)"
+        shell: bash
+
+      - name: Configure
+        env:
+          VCPKG_ROOT: ${{ env.VCPKG_ROOT }}
+          VCPKG_DEFAULT_TRIPLET: ${{ matrix.triplet }}
+        run: cmake --preset ${{ matrix.preset }}
+
+      - name: Build
+        run: cmake --build --preset ${{ matrix.preset }}
+
+      # Quick visibility into what Qt actually shipped in this build, so a
+      # "Could not find the Qt platform plugin" error tells us whether the
+      # plugin file is missing entirely (= vcpkg port didn't build it) or
+      # present-but-Qt-can't-load-it (= plugin path / RPATH / dependency
+      # issue). One-line ls; runs before tests on every leg.
+      - name: List Qt platform plugins (diagnostic)
+        shell: bash
+        run: |
+          plugins="${{ github.workspace }}/build/${{ matrix.preset }}/vcpkg_installed/${{ matrix.triplet }}/Qt6/plugins/platforms"
+          echo "Contents of $plugins :"
+          ls -la "$plugins" 2>/dev/null || echo "(plugin dir does not exist)"
+
+      # Qt plugin path env vars set at step level (NOT via $GITHUB_ENV) so they
+      # reliably propagate into ctest -> test executable -> std::system shell
+      # -> the application binary. Per Qt docs, QT_QPA_PLATFORM_PLUGIN_PATH is
+      # the documented variable Qt reads to locate the platforms/ plugin
+      # directory; QT_PLUGIN_PATH is set as a general fallback. Both point at
+      # vcpkg's well-known plugin layout.
+      - name: Test (Linux, under xvfb-run)
+        if: runner.os == 'Linux'
+        env:
+          QT_QPA_PLATFORM_PLUGIN_PATH: ${{ github.workspace }}/build/${{ matrix.preset }}/vcpkg_installed/${{ matrix.triplet }}/Qt6/plugins/platforms
+          QT_PLUGIN_PATH: ${{ github.workspace }}/build/${{ matrix.preset }}/vcpkg_installed/${{ matrix.triplet }}/Qt6/plugins
+        run: xvfb-run --auto-servernum ctest --preset ${{ matrix.preset }} --output-on-failure
+
+      - name: Test (macOS / Windows)
+        if: runner.os != 'Linux'
+        env:
+          QT_QPA_PLATFORM_PLUGIN_PATH: ${{ github.workspace }}/build/${{ matrix.preset }}/vcpkg_installed/${{ matrix.triplet }}/Qt6/plugins/platforms
+          QT_PLUGIN_PATH: ${{ github.workspace }}/build/${{ matrix.preset }}/vcpkg_installed/${{ matrix.triplet }}/Qt6/plugins
+        run: ctest --preset ${{ matrix.preset }} --output-on-failure
+
+      # Save the populated vcpkg binary cache even when build / test failed
+      # earlier in this job. `if: always()` is the only reliable way to do
+      # this; the deprecated `save-always: true` on the unified cache action
+      # silently did nothing. Skipped automatically when the primary key
+      # already matches an existing cache entry (no upload, no churn).
+      - name: Save vcpkg binary cache
+        if: always() && steps.cache-restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ github.workspace }}/vcpkg-binary-cache
+          key: vcpkg-bincache-${{ matrix.os }}-${{ hashFiles('vcpkg.json') }}-v1

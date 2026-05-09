@@ -5,12 +5,12 @@
     "description": "Cross-platform offline viewer for SEPA payment XML messages.",
     "homepage": "https://github.com/Yornik/sepa-xml-viewer",
     "license": "GPL-3.0-or-later",
+    "builtin-baseline": "d29e8309d1cf7a7cb6998a935b2ac5b1958a7432",
     "dependencies": [
         {
             "name": "qtbase",
             "default-features": false,
-            "features": ["gui"],
-            "comment": "No 'network' feature — see plan/00-init-phase.md §3.4. Offline by build-time guarantee."
+            "features": ["gui"]
         },
         "qtdeclarative",
         {
