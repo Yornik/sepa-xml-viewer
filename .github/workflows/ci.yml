@@ -200,6 +200,18 @@ jobs:
       - name: Build
         run: cmake --build --preset ${{ matrix.preset }}
 
+      # Quick visibility into what Qt actually shipped in this build, so a
+      # "Could not find the Qt platform plugin" error tells us whether the
+      # plugin file is missing entirely (= vcpkg port didn't build it) or
+      # present-but-Qt-can't-load-it (= plugin path / RPATH / dependency
+      # issue). One-line ls; runs before tests on every leg.
+      - name: List Qt platform plugins (diagnostic)
+        shell: bash
+        run: |
+          plugins="${{ github.workspace }}/build/${{ matrix.preset }}/vcpkg_installed/${{ matrix.triplet }}/Qt6/plugins/platforms"
+          echo "Contents of $plugins :"
+          ls -la "$plugins" 2>/dev/null || echo "(plugin dir does not exist)"
+
       # Qt plugin path env vars set at step level (NOT via $GITHUB_ENV) so they
       # reliably propagate into ctest -> test executable -> std::system shell
       # -> the application binary. Per Qt docs, QT_QPA_PLATFORM_PLUGIN_PATH is

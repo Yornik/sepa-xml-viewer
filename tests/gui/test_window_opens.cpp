@@ -37,14 +37,15 @@ constexpr const char* kTimeoutCmd = "gtimeout";
 constexpr const char* kTimeoutCmd = "timeout";
 #endif
 
-int run_with_timeout_offscreen(const std::string& binary, int timeout_seconds) {
+int run_with_timeout_headless(const std::string& binary, const std::string& platform,
+                              int timeout_seconds) {
     // GNU coreutils `timeout` returns 124 when it had to kill the process,
     // otherwise it forwards the exit code. We do NOT redirect stderr — when
     // the test fails, ctest --output-on-failure surfaces whatever the binary
     // printed (e.g. "Could not load Qt platform plugin offscreen") which is
     // the only useful diagnostic.
     const std::string cmd =
-        "QT_QPA_PLATFORM=offscreen " +
+        "QT_QPA_PLATFORM=" + platform + " " +
         std::string(kTimeoutCmd) + " --signal=TERM " +
         std::to_string(timeout_seconds) + " " + binary;
     int rc = std::system(cmd.c_str());
@@ -56,14 +57,22 @@ int run_with_timeout_offscreen(const std::string& binary, int timeout_seconds) {
 
 }  // namespace
 
-TEST_CASE("binary launches under offscreen Qt platform without crashing", "[gui]") {
-    // Two outcomes are healthy:
+TEST_CASE("binary launches under a headless Qt platform without crashing", "[gui]") {
+    // Try `offscreen` first (richer; supports rendering buffers). If it isn't
+    // available in the Qt build (vcpkg's qtbase[gui] doesn't always ship it
+    // on Linux), fall back to `minimal` — bundled with every Qt build that
+    // links Qt6Gui at all.
+    //
+    // Two outcomes are healthy on either platform plugin:
     //   124 — timeout fired; app was running its event loop until killed.
-    //     0 — the app exited cleanly within the window (legal for headless
-    //          smoke runs).
+    //     0 — the app exited cleanly within the window.
     // Anything else (1 = error, 134 = SIGABRT, 139 = SIGSEGV, 127 =
-    // command-not-found, etc.) is a real failure we want to flag.
-    const int rc = run_with_timeout_offscreen(binary_path(), 2);
-    INFO("binary exit code: " << rc);
+    // command-not-found) is a real failure we want to flag.
+    int rc = run_with_timeout_headless(binary_path(), "offscreen", 2);
+    INFO("offscreen exit code: " << rc);
+    if (rc != 124 && rc != 0) {
+        rc = run_with_timeout_headless(binary_path(), "minimal", 2);
+        INFO("minimal exit code: " << rc);
+    }
     REQUIRE((rc == 124 || rc == 0));
 }
