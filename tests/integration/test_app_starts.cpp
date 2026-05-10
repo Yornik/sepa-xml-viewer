@@ -3,13 +3,13 @@
 // is provided by the CMake harness through the SEPA_VIEWER_BINARY environment
 // variable (set in tests/integration/CMakeLists.txt via a generator expression).
 
-#include <catch2/catch_test_macros.hpp>
-
 #include <array>
 #include <cstdio>
 #include <cstdlib>
 #include <stdexcept>
 #include <string>
+
+#include <catch2/catch_test_macros.hpp>
 
 // MSVC names POSIX popen/pclose with a leading underscore (_popen/_pclose) and
 // they live in <stdio.h>. Using bare popen on MSVC fails with C2039
@@ -40,9 +40,8 @@ namespace {
 std::string binary_path() {
     const char* p = std::getenv("SEPA_VIEWER_BINARY");
     if (p == nullptr || p[0] == '\0') {
-        throw std::runtime_error(
-            "SEPA_VIEWER_BINARY is not set; integration tests must be run via "
-            "ctest --preset <preset>, which injects the binary path.");
+        throw std::runtime_error("SEPA_VIEWER_BINARY is not set; integration tests must be run via "
+                                 "ctest --preset <preset>, which injects the binary path.");
     }
     return p;
 }

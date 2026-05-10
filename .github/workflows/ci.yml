@@ -27,6 +27,97 @@ env:
   CMAKE_BUILD_PARALLEL_LEVEL: 4
 
 jobs:
+  # Fast-feedback formatting check. Linux only; format is stable across
+  # platforms so a single check covers the whole tree. Runs in parallel with
+  # the build matrix — a formatting failure should surface in seconds, not
+  # after waiting an hour for the slowest matrix leg.
+  lint:
+    name: clang-format
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # apt's `clang-format` differs by Ubuntu release (jammy=14, noble=18) and
+      # diverges from what brew / latest LLVM produce — same .clang-format
+      # config, materially different output between versions. Pin via pip's
+      # cross-platform clang-format wheel so CI and dev machines format
+      # identically. Bump the version in lockstep with team-wide updates.
+      - name: Install pinned clang-format (18.1.8)
+        run: pip install clang-format==18.1.8
+
+      - name: Check formatting
+        run: |
+          find src tests -type f \( -name '*.cpp' -o -name '*.h' -o -name '*.hpp' \) -print0 \
+            | xargs -0 clang-format --dry-run --Werror
+
+  # clang-tidy curated checks. Runs against the same compile_commands.json the
+  # ci-linux build uses (manifest vcpkg + Qt, identical compile flags). Scoped
+  # to src/ — test code legitimately uses popen / system / getenv / static
+  # initializers that fire bugprone-* and cert-* checks that are signal in
+  # production code but noise in a test harness. Re-evaluate scope when test
+  # code grows beyond the harness skeleton.
+  tidy:
+    name: clang-tidy
+    runs-on: ubuntu-22.04
+    # No `needs:` — runs in parallel with the build matrix. Both the matrix's
+    # Linux leg and this job restore the same `vcpkg-bincache-ubuntu-22.04`
+    # cache (keyed on vcpkg.json hash); restores are read-only and don't
+    # conflict.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Same rationale as the lint job: pin clang-tidy via pip so CI and dev
+      # machines run the same checks. Bump in lockstep with clang-format.
+      - name: Install pinned clang-tidy (18.1.8)
+        run: pip install clang-tidy==18.1.8
+
+      # Restore the same vcpkg binary cache the matrix build populated, then
+      # configure (without rebuilding) so clang-tidy has a compile_commands.json
+      # to read.
+      - name: Restore vcpkg binary cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ github.workspace }}/vcpkg-binary-cache
+          key: vcpkg-bincache-ubuntu-22.04-${{ hashFiles('vcpkg.json') }}-v1
+
+      - name: Install Qt build prerequisites (Linux)
+        run: |
+          sudo apt-get install -y --no-install-recommends \
+            autoconf autoconf-archive automake libtool pkg-config \
+            libgl1-mesa-dev libglu1-mesa-dev libegl1-mesa-dev \
+            libfontconfig1-dev libfreetype-dev libx11-dev libx11-xcb-dev \
+            libxcb1-dev libxcb-cursor-dev libxcb-glx0-dev libxcb-icccm4-dev \
+            libxcb-image0-dev libxcb-keysyms1-dev libxcb-randr0-dev \
+            libxcb-render-util0-dev libxcb-shape0-dev libxcb-shm0-dev \
+            libxcb-sync-dev libxcb-util-dev libxcb-xfixes0-dev libxcb-xkb-dev \
+            libxext-dev libxfixes-dev libxi-dev libxkbcommon-dev \
+            libxkbcommon-x11-dev libxrender-dev libdbus-1-dev
+
+      - name: Bootstrap vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: 'd29e8309d1cf7a7cb6998a935b2ac5b1958a7432'
+
+      - name: Configure (generates compile_commands.json)
+        env:
+          VCPKG_DEFAULT_TRIPLET: x64-linux
+        run: cmake --preset ci-linux
+
+      - name: Run clang-tidy on src/
+        run: |
+          # --extra-arg=-Wno-unknown-warning-option lets clang-tidy ignore
+          # the GCC-only warning flags (e.g. -Wduplicated-branches) that the
+          # GCC build leaves in compile_commands.json. clang-tidy uses clang
+          # as its parser regardless of the build compiler.
+          find src -type f -name '*.cpp' -print0 \
+            | xargs -0 -n1 clang-tidy \
+                --extra-arg=-Wno-unknown-warning-option \
+                -p build/ci-linux
+
   build-test:
     name: ${{ matrix.os }} (${{ matrix.preset }})
     runs-on: ${{ matrix.os }}
