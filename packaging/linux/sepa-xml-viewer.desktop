@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=SEPA XML Viewer
+GenericName=SEPA Payment File Viewer
+Comment=Read-only viewer for SEPA / ISO 20022 payment XML messages.
+Exec=sepa-xml-viewer %F
+Icon=sepa-xml-viewer
+Terminal=false
+Categories=Office;Finance;Utility;
+MimeType=application/xml;text/xml;
+StartupWMClass=sepa-xml-viewer
+Keywords=SEPA;ISO20022;payment;XML;
