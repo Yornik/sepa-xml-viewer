@@ -167,23 +167,36 @@ ApplicationWindow {
                                 Connections {
                                     target: SepaController
                                     function onStateChanged() {
-                                        if (SepaController.hasContent) {
-                                            tree.expandRecursively(-1, 1);
-                                            const rootIdx = tree.index(0, 0);
-                                            sel.setCurrentIndex(rootIdx,
-                                                                ItemSelectionModel.ClearAndSelect);
-                                        }
+                                        if (!SepaController.hasContent)
+                                            return;
+                                        // Expand the root row only — deeper expansion
+                                        // would force the view to lay out every
+                                        // PaymentInfo's children (2500 entries in the
+                                        // stress fixture) and visibly stall on large
+                                        // files.
+                                        tree.expand(0);
+                                        // Ask the *model* (not the view) for the first
+                                        // child of the root, so the index lookup doesn't
+                                        // depend on whether the view has finished its
+                                        // layout pass yet. The view's tree.index(1, 0)
+                                        // can return an invalid index during the heavy
+                                        // initial layout of the 2500-tx fixture.
+                                        const model = SepaController.treeModel;
+                                        const rootIdx = model.index(0, 0);
+                                        const firstChild = model.index(0, 0, rootIdx);
+                                        const target = firstChild.valid ? firstChild : rootIdx;
+                                        sel.setCurrentIndex(target,
+                                                            ItemSelectionModel.ClearAndSelect);
                                     }
                                 }
 
-                                delegate: TreeViewDelegate {
-                                    required property var model
-                                    contentItem: Label {
-                                        text: model.display
-                                        elide: Label.ElideRight
-                                        font.pixelSize: 13
-                                    }
-                                }
+                                // Default TreeViewDelegate already renders
+                                // the model's display role with the active
+                                // style. Overriding `contentItem` here was
+                                // shadowing the role-binding TreeViewDelegate
+                                // already does, which broke row population
+                                // on TableView's incubator pass.
+                                delegate: TreeViewDelegate {}
                             }
                         }
 

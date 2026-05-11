@@ -258,10 +258,25 @@ jobs:
           # --check parses a fixture without launching the GUI. Exercises the
           # full parser path from a packaged build, catches regressions where
           # the binary is fine but the SEPA parser broke between releases.
+          #
+          # The binary is WIN32_EXECUTABLE so PowerShell's `& foo.exe` doesn't
+          # wait for it and leaves $LASTEXITCODE stale — meaning the parser
+          # could succeed (printing "OK: ...") but the smoke would still fail
+          # the $LASTEXITCODE check. Use Start-Process -Wait -PassThru, which
+          # waits regardless of subsystem and exposes the real exit code via
+          # $proc.ExitCode. -RedirectStandardOutput captures the OK / ERROR
+          # line for the log.
           $fixture = "${{ github.workspace }}\tests\example-xml\pain.001.001.13-credit-transfer.xml"
-          & "$zipBin\sepa-xml-viewer.exe" --check $fixture
-          if ($LASTEXITCODE -ne 0) {
-              Write-Error "Packaged binary failed to parse the fixture file."
+          $checkOut = "$pwd\check-out.txt"
+          $proc = Start-Process "$zipBin\sepa-xml-viewer.exe" `
+              -ArgumentList "--check",$fixture `
+              -RedirectStandardOutput $checkOut `
+              -Wait -PassThru
+          if (Test-Path $checkOut) {
+              Write-Host (Get-Content $checkOut -Raw)
+          }
+          if ($proc.ExitCode -ne 0) {
+              Write-Error "Packaged binary failed to parse the fixture file. Exit: $($proc.ExitCode)"
               exit 1
           }
           Write-Host "OK: --check parsed the fixture cleanly"
