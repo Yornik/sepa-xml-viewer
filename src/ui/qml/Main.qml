@@ -201,16 +201,32 @@ ApplicationWindow {
                                 // by *not* overriding `contentItem`.
                                 delegate: TreeViewDelegate {
                                     id: treeDelegate
-                                    indicator: Label {
-                                        visible: treeDelegate.hasChildren
-                                        text: treeDelegate.expanded ? "▼" : "▶"
-                                        opacity: 0.95
-                                        // 1.2× the row's text size — small
-                                        // enough to feel like an indicator
-                                        // not a column, big enough that
-                                        // dark-theme users on Windows can
-                                        // actually see it.
-                                        font.pixelSize: treeDelegate.font.pixelSize * 1.2
+                                    // Wrap the chevron in a fixed-width slot
+                                    // so leaf rows (no arrow) and parent
+                                    // rows (with arrow) at the same depth
+                                    // line up their text columns. Without
+                                    // this, sibling leaves like "Group
+                                    // Header" hug the depth-indent column
+                                    // while sibling parents push their
+                                    // label right by the arrow's width,
+                                    // and a glance can't tell which rows
+                                    // are at the same level.
+                                    indicator: Item {
+                                        implicitWidth: chevron.implicitWidth
+                                        implicitHeight: chevron.implicitHeight
+                                        Label {
+                                            id: chevron
+                                            anchors.centerIn: parent
+                                            visible: treeDelegate.hasChildren
+                                            text: treeDelegate.expanded ? "▼" : "▶"
+                                            opacity: 0.95
+                                            // 1.2× the row's text size —
+                                            // small enough to feel like an
+                                            // indicator, big enough that
+                                            // dark-theme users on Windows
+                                            // can actually see it.
+                                            font.pixelSize: treeDelegate.font.pixelSize * 1.2
+                                        }
                                     }
                                 }
                             }
