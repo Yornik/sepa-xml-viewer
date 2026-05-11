@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Placeholder icon for the init-phase. A real, professionally-designed icon
+  is a Phase 2 deliverable per plan/00-init-phase.md §14.3. This SVG exists
+  so the .desktop file's Icon= entry resolves to a real file, so the
+  AppImage build (linuxdeploy) does not abort, and so a launcher-bar entry
+  isn't a generic question-mark placeholder.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E3A8A"/>
+      <stop offset="100%" stop-color="#3B82F6"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="36" fill="url(#bg)"/>
+  <text x="128" y="118" text-anchor="middle" dominant-baseline="central"
+        font-family="-apple-system, 'Segoe UI', Roboto, sans-serif"
+        font-size="54" font-weight="700" fill="#ffffff" letter-spacing="-2">SEPA</text>
+  <text x="128" y="172" text-anchor="middle" dominant-baseline="central"
+        font-family="-apple-system, 'Segoe UI', Roboto, sans-serif"
+        font-size="28" font-weight="500" fill="#BFDBFE">XML viewer</text>
+</svg>
