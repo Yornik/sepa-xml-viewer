@@ -5,7 +5,10 @@
 # filenames and breaks Windows builds with `mkdir(... sepa-xml-viewer_../ui)`,
 # since `..` is not a valid path component on Windows.
 
-qt_add_library(sepa_ui_qml STATIC)
+qt_add_library(sepa_ui_qml STATIC
+    sepa_controller.cpp
+    sepa_controller.h
+)
 
 qt_add_qml_module(sepa_ui_qml
     URI sepa.viewer
@@ -14,7 +17,15 @@ qt_add_qml_module(sepa_ui_qml
         qml/Main.qml
 )
 
+target_include_directories(sepa_ui_qml
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
 target_link_libraries(sepa_ui_qml
-    PRIVATE
+    PUBLIC
         Qt6::Quick
+    PRIVATE
+        sepa::warnings
+        sepa::core
 )

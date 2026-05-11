@@ -255,6 +255,17 @@ jobs:
           Start-Process -Wait $exe.FullName -ArgumentList "/S","/D=C:\sepa-installed"
           & "C:\sepa-installed\bin\sepa-xml-viewer.exe" --version
 
+          # --check parses a fixture without launching the GUI. Exercises the
+          # full parser path from a packaged build, catches regressions where
+          # the binary is fine but the SEPA parser broke between releases.
+          $fixture = "${{ github.workspace }}\tests\example-xml\pain.001.001.13-credit-transfer.xml"
+          & "$zipBin\sepa-xml-viewer.exe" --check $fixture
+          if ($LASTEXITCODE -ne 0) {
+              Write-Error "Packaged binary failed to parse the fixture file."
+              exit 1
+          }
+          Write-Host "OK: --check parsed the fixture cleanly"
+
           # Strong GUI smoke test: launch the binary and verify the QML event
           # loop actually stays up. --version above only proves the loader
           # finds the DLLs — it doesn't exercise QML loading at all, which is
@@ -265,7 +276,11 @@ jobs:
           # so PowerShell's -RedirectStandardError actually captures them.
           $env:QT_FORCE_STDERR_LOGGING = "1"
           $guiErr = "$pwd\gui-err.txt"
+          # Pass the fixture path on the command line so the GUI exercises
+          # the full parse-and-render pipeline, not just the empty-window
+          # bring-up. v0.1.0 onward this is the load smoke for the parser.
           $gui = Start-Process "$zipBin\sepa-xml-viewer.exe" `
+              -ArgumentList $fixture `
               -RedirectStandardError $guiErr -PassThru
           Start-Sleep 5
           $exitedFast = $gui.HasExited

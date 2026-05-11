@@ -30,10 +30,12 @@ target_include_directories(sepa-xml-viewer
 target_link_libraries(sepa-xml-viewer
     PRIVATE
         sepa::warnings
+        sepa::core
         sepa_ui_qml
         sepa_ui_qmlplugin
         Qt6::Gui
         Qt6::Quick
+        Qt6::QuickControls2  # QQuickStyle::setStyle("Material") in main.cpp
 )
 
 set_target_properties(sepa-xml-viewer PROPERTIES

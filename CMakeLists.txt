@@ -25,7 +25,7 @@ include(cmake/ProjectVersion.cmake)
 # feature) per plan/00-init-phase.md §1 Goal #9 (offline-only by build-time
 # guarantee). On a system Qt the Network module may still be present on disk;
 # we simply do not link it.
-find_package(Qt6 6.5 REQUIRED COMPONENTS Gui Quick)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Gui Quick QuickControls2)
 qt_standard_project_setup(REQUIRES 6.5)
 
 option(SEPA_VIEWER_BUILD_TESTS "Build the unit / integration / GUI-smoke tests" ON)

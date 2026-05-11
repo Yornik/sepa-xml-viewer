@@ -1,0 +1,358 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+================================================================================
+  SEPA Credit Transfer Initiation - pain.001.001.13
+  Multi-batch payroll + supplier example
+================================================================================
+
+  ISO 20022 message:   pain.001.001.13
+  EPC scheme:          SEPA Credit Transfer (SCT) Customer-to-PSP
+  Intent:              one debtor (a Berlin GmbH) initiates a single file
+                       containing TWO Payment Information batches:
+                         PmtInf #1 — monthly payroll (3 transactions:
+                                     employees in DE, NL, FR)
+                         PmtInf #2 — supplier payments (2 transactions:
+                                     suppliers in DE and NL)
+                       Five transactions total, EUR 7,892.34 control sum.
+
+                       Exercises:
+                         - Multiple PmtInf blocks in one message.
+                         - Cross-border SEPA (intra-EUR-zone DE/NL/FR).
+                         - Mix of unstructured remittance (employee salaries)
+                           and ISO 11649 structured creditor reference
+                           (supplier invoice).
+                         - Two PmtInf-level execution dates (payroll on the
+                           25th, suppliers on month-end).
+                         - One employee with a longer compound name to
+                           exercise field-width behaviour in the UI.
+                         - Mix of CtgyPurp codes (SALA, SUPP) so a future
+                           summary view can distinguish the two batches.
+
+  >>>  TEST DATA - DO NOT USE FOR REAL PAYMENTS  <<<
+
+  Every IBAN, BIC, name, address, and identifier in this file is a synthetic
+  PLACEHOLDER. See tests/example-xml/README.md for the placeholder convention.
+
+  All IBANs are checksum-valid (mod-97 = 1) but use fake bank codes:
+    Debtor          : DE28500202000123456789   (DE company, Berlin)
+    Employee DE     : DE95370400440111222333   (Berlin)
+    Employee NL     : NL13TEST0123456789       (Amsterdam)
+    Employee FR     : FR1420041010050500013M02606  (Paris)
+    Supplier DE     : DE54200505500987654321   (Hamburg)
+    Supplier NL     : NL61PLAC9876543210       (Rotterdam)
+
+  BICs follow the placeholder pattern <CODE>DEFFXXX / <CODE>NLBBXXX / etc.
+  Names are prefixed with "PLACEHOLDER".
+
+  This file is structured to match the official pain.001.001.13.xsd
+  published at https://www.iso20022.org. Final XSD validation lands in
+  Phase 4 (per plan/04-signing-and-encryption.md is unrelated; XSD
+  validation is plan/00 §3.2 — Xerces-C++ arrives with the validation UI).
+================================================================================
+-->
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.001.001.13"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <CstmrCdtTrfInitn>
+
+        <!-- ============================================================ -->
+        <!-- Group Header — applies to the entire message                 -->
+        <!-- ============================================================ -->
+        <GrpHdr>
+            <MsgId>PLACEHOLDER-MSG-20260525-PAYROLL-SUPP-001</MsgId>
+            <CreDtTm>2026-05-25T07:45:00</CreDtTm>
+            <NbOfTxs>5</NbOfTxs>
+            <CtrlSum>7892.34</CtrlSum>
+            <InitgPty>
+                <Nm>PLACEHOLDER Acme Industries GmbH</Nm>
+                <Id>
+                    <OrgId>
+                        <Othr>
+                            <Id>PLACEHOLDER-ORG-ID-ACME-001</Id>
+                            <SchmeNm>
+                                <Cd>BANK</Cd>
+                            </SchmeNm>
+                        </Othr>
+                    </OrgId>
+                </Id>
+            </InitgPty>
+        </GrpHdr>
+
+        <!-- ============================================================ -->
+        <!-- PmtInf #1 — Monthly payroll (SALA, 3 transactions)            -->
+        <!-- ============================================================ -->
+        <PmtInf>
+            <PmtInfId>PLACEHOLDER-PMT-INF-PAYROLL-2026-05</PmtInfId>
+            <PmtMtd>TRF</PmtMtd>
+            <BtchBookg>true</BtchBookg>
+            <NbOfTxs>3</NbOfTxs>
+            <CtrlSum>6450.00</CtrlSum>
+
+            <PmtTpInf>
+                <SvcLvl>
+                    <Cd>SEPA</Cd>
+                </SvcLvl>
+                <CtgyPurp>
+                    <Cd>SALA</Cd>
+                </CtgyPurp>
+            </PmtTpInf>
+
+            <ReqdExctnDt>
+                <Dt>2026-05-25</Dt>
+            </ReqdExctnDt>
+
+            <Dbtr>
+                <Nm>PLACEHOLDER Acme Industries GmbH</Nm>
+                <PstlAdr>
+                    <StrtNm>PLACEHOLDER Friedrichstrasse</StrtNm>
+                    <BldgNb>100</BldgNb>
+                    <PstCd>10117</PstCd>
+                    <TwnNm>Berlin</TwnNm>
+                    <Ctry>DE</Ctry>
+                </PstlAdr>
+            </Dbtr>
+            <DbtrAcct>
+                <Id>
+                    <IBAN>DE28500202000123456789</IBAN>
+                </Id>
+                <Ccy>EUR</Ccy>
+            </DbtrAcct>
+            <DbtrAgt>
+                <FinInstnId>
+                    <BICFI>BANKDEFFXXX</BICFI>
+                </FinInstnId>
+            </DbtrAgt>
+
+            <ChrgBr>SLEV</ChrgBr>
+
+            <!-- Transaction 1/3: DE employee, simple remittance -->
+            <CdtTrfTxInf>
+                <PmtId>
+                    <InstrId>PLACEHOLDER-INSTR-PAY-001</InstrId>
+                    <EndToEndId>PLACEHOLDER-E2E-SALARY-202605-EMP001</EndToEndId>
+                </PmtId>
+                <Amt>
+                    <InstdAmt Ccy="EUR">2150.00</InstdAmt>
+                </Amt>
+                <CdtrAgt>
+                    <FinInstnId>
+                        <BICFI>COBADEFFXXX</BICFI>
+                    </FinInstnId>
+                </CdtrAgt>
+                <Cdtr>
+                    <Nm>PLACEHOLDER Anna Mueller</Nm>
+                    <PstlAdr>
+                        <StrtNm>PLACEHOLDER Kantstrasse</StrtNm>
+                        <BldgNb>12</BldgNb>
+                        <PstCd>10623</PstCd>
+                        <TwnNm>Berlin</TwnNm>
+                        <Ctry>DE</Ctry>
+                    </PstlAdr>
+                </Cdtr>
+                <CdtrAcct>
+                    <Id>
+                        <IBAN>DE95370400440111222333</IBAN>
+                    </Id>
+                </CdtrAcct>
+                <RmtInf>
+                    <Ustrd>PLACEHOLDER Salary May 2026 — Anna Mueller</Ustrd>
+                </RmtInf>
+            </CdtTrfTxInf>
+
+            <!-- Transaction 2/3: NL employee, intentionally long compound name -->
+            <CdtTrfTxInf>
+                <PmtId>
+                    <InstrId>PLACEHOLDER-INSTR-PAY-002</InstrId>
+                    <EndToEndId>PLACEHOLDER-E2E-SALARY-202605-EMP002</EndToEndId>
+                </PmtId>
+                <Amt>
+                    <InstdAmt Ccy="EUR">2200.00</InstdAmt>
+                </Amt>
+                <CdtrAgt>
+                    <FinInstnId>
+                        <BICFI>INGBNL2AXXX</BICFI>
+                    </FinInstnId>
+                </CdtrAgt>
+                <Cdtr>
+                    <Nm>PLACEHOLDER Johannes van der Berg-Hoogendoorn</Nm>
+                    <PstlAdr>
+                        <StrtNm>PLACEHOLDER Prinsengracht</StrtNm>
+                        <BldgNb>263</BldgNb>
+                        <PstCd>1016 GV</PstCd>
+                        <TwnNm>Amsterdam</TwnNm>
+                        <Ctry>NL</Ctry>
+                    </PstlAdr>
+                </Cdtr>
+                <CdtrAcct>
+                    <Id>
+                        <IBAN>NL13TEST0123456789</IBAN>
+                    </Id>
+                </CdtrAcct>
+                <RmtInf>
+                    <Ustrd>PLACEHOLDER Salary May 2026 — J. van der Berg-Hoogendoorn</Ustrd>
+                </RmtInf>
+            </CdtTrfTxInf>
+
+            <!-- Transaction 3/3: FR employee -->
+            <CdtTrfTxInf>
+                <PmtId>
+                    <InstrId>PLACEHOLDER-INSTR-PAY-003</InstrId>
+                    <EndToEndId>PLACEHOLDER-E2E-SALARY-202605-EMP003</EndToEndId>
+                </PmtId>
+                <Amt>
+                    <InstdAmt Ccy="EUR">2100.00</InstdAmt>
+                </Amt>
+                <CdtrAgt>
+                    <FinInstnId>
+                        <BICFI>BNPAFRPPXXX</BICFI>
+                    </FinInstnId>
+                </CdtrAgt>
+                <Cdtr>
+                    <Nm>PLACEHOLDER Camille Dubois</Nm>
+                    <PstlAdr>
+                        <StrtNm>PLACEHOLDER Rue de Rivoli</StrtNm>
+                        <BldgNb>87</BldgNb>
+                        <PstCd>75004</PstCd>
+                        <TwnNm>Paris</TwnNm>
+                        <Ctry>FR</Ctry>
+                    </PstlAdr>
+                </Cdtr>
+                <CdtrAcct>
+                    <Id>
+                        <IBAN>FR1420041010050500013M02606</IBAN>
+                    </Id>
+                </CdtrAcct>
+                <RmtInf>
+                    <Ustrd>PLACEHOLDER Salaire Mai 2026 — Camille Dubois</Ustrd>
+                </RmtInf>
+            </CdtTrfTxInf>
+
+        </PmtInf>
+
+        <!-- ============================================================ -->
+        <!-- PmtInf #2 — Supplier payments (SUPP, 2 transactions)         -->
+        <!-- ============================================================ -->
+        <PmtInf>
+            <PmtInfId>PLACEHOLDER-PMT-INF-SUPPLIERS-2026-05</PmtInfId>
+            <PmtMtd>TRF</PmtMtd>
+            <BtchBookg>true</BtchBookg>
+            <NbOfTxs>2</NbOfTxs>
+            <CtrlSum>1442.34</CtrlSum>
+
+            <PmtTpInf>
+                <SvcLvl>
+                    <Cd>SEPA</Cd>
+                </SvcLvl>
+                <CtgyPurp>
+                    <Cd>SUPP</Cd>
+                </CtgyPurp>
+            </PmtTpInf>
+
+            <ReqdExctnDt>
+                <Dt>2026-05-29</Dt>
+            </ReqdExctnDt>
+
+            <Dbtr>
+                <Nm>PLACEHOLDER Acme Industries GmbH</Nm>
+                <PstlAdr>
+                    <StrtNm>PLACEHOLDER Friedrichstrasse</StrtNm>
+                    <BldgNb>100</BldgNb>
+                    <PstCd>10117</PstCd>
+                    <TwnNm>Berlin</TwnNm>
+                    <Ctry>DE</Ctry>
+                </PstlAdr>
+            </Dbtr>
+            <DbtrAcct>
+                <Id>
+                    <IBAN>DE28500202000123456789</IBAN>
+                </Id>
+                <Ccy>EUR</Ccy>
+            </DbtrAcct>
+            <DbtrAgt>
+                <FinInstnId>
+                    <BICFI>BANKDEFFXXX</BICFI>
+                </FinInstnId>
+            </DbtrAgt>
+
+            <ChrgBr>SLEV</ChrgBr>
+
+            <!-- Transaction 1/2: DE supplier, ISO 11649 structured creditor reference -->
+            <CdtTrfTxInf>
+                <PmtId>
+                    <InstrId>PLACEHOLDER-INSTR-SUPP-001</InstrId>
+                    <EndToEndId>PLACEHOLDER-E2E-INV-2026-A-4471</EndToEndId>
+                </PmtId>
+                <Amt>
+                    <InstdAmt Ccy="EUR">892.34</InstdAmt>
+                </Amt>
+                <CdtrAgt>
+                    <FinInstnId>
+                        <BICFI>HASPDEHHXXX</BICFI>
+                    </FinInstnId>
+                </CdtrAgt>
+                <Cdtr>
+                    <Nm>PLACEHOLDER Bauer Office Supplies AG</Nm>
+                    <PstlAdr>
+                        <StrtNm>PLACEHOLDER Speicherstadt</StrtNm>
+                        <BldgNb>4</BldgNb>
+                        <PstCd>20457</PstCd>
+                        <TwnNm>Hamburg</TwnNm>
+                        <Ctry>DE</Ctry>
+                    </PstlAdr>
+                </Cdtr>
+                <CdtrAcct>
+                    <Id>
+                        <IBAN>DE54200505500987654321</IBAN>
+                    </Id>
+                </CdtrAcct>
+                <RmtInf>
+                    <Strd>
+                        <CdtrRefInf>
+                            <Tp>
+                                <CdOrPrtry>
+                                    <Cd>SCOR</Cd>
+                                </CdOrPrtry>
+                            </Tp>
+                            <Ref>RF18539007547034</Ref>
+                        </CdtrRefInf>
+                    </Strd>
+                </RmtInf>
+            </CdtTrfTxInf>
+
+            <!-- Transaction 2/2: NL supplier, unstructured remittance -->
+            <CdtTrfTxInf>
+                <PmtId>
+                    <InstrId>PLACEHOLDER-INSTR-SUPP-002</InstrId>
+                    <EndToEndId>PLACEHOLDER-E2E-INV-2026-NL-228</EndToEndId>
+                </PmtId>
+                <Amt>
+                    <InstdAmt Ccy="EUR">550.00</InstdAmt>
+                </Amt>
+                <CdtrAgt>
+                    <FinInstnId>
+                        <BICFI>RABONL2UXXX</BICFI>
+                    </FinInstnId>
+                </CdtrAgt>
+                <Cdtr>
+                    <Nm>PLACEHOLDER Rotterdam Logistics BV</Nm>
+                    <PstlAdr>
+                        <StrtNm>PLACEHOLDER Wilhelminakade</StrtNm>
+                        <BldgNb>308</BldgNb>
+                        <PstCd>3072 AR</PstCd>
+                        <TwnNm>Rotterdam</TwnNm>
+                        <Ctry>NL</Ctry>
+                    </PstlAdr>
+                </Cdtr>
+                <CdtrAcct>
+                    <Id>
+                        <IBAN>NL61PLAC9876543210</IBAN>
+                    </Id>
+                </CdtrAcct>
+                <RmtInf>
+                    <Ustrd>PLACEHOLDER Invoice 2026-NL-228 — freight forwarding April 2026</Ustrd>
+                </RmtInf>
+            </CdtTrfTxInf>
+
+        </PmtInf>
+
+    </CstmrCdtTrfInitn>
+</Document>

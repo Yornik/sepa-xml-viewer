@@ -115,3 +115,29 @@ TEST_CASE("help short flag (-h) exits 0 and prints the usage block", "[integrati
     REQUIRE(result.exit_code == 0);
     REQUIRE(result.stdout_output.find("Usage:") != std::string::npos);
 }
+
+// --check <file> parses without starting the GUI, so it works on a headless
+// CI runner. Used as the CLI smoke for the parser.
+#ifndef SEPA_FIXTURE_DIR
+#error "SEPA_FIXTURE_DIR must be defined by the build system"
+#endif
+
+TEST_CASE("check with a good pain.001.001.13 fixture exits 0", "[integration]") {
+    const std::string cmd =
+        binary_path() + " --check \"" + SEPA_FIXTURE_DIR + "/pain.001.001.13-credit-transfer.xml\"";
+    const auto result = run(cmd);
+    REQUIRE(result.exit_code == 0);
+    REQUIRE(result.stdout_output.find("OK") != std::string::npos);
+}
+
+TEST_CASE("check with a missing file exits non-zero", "[integration]") {
+    const auto result = run(binary_path() + " --check /nonexistent/sepa-xml-viewer-missing.xml");
+    REQUIRE(result.exit_code != 0);
+}
+
+TEST_CASE("check with malformed XML exits non-zero", "[integration]") {
+    // README.md is not XML — parser should report MalformedXml and exit non-zero.
+    const std::string cmd = binary_path() + " --check \"" + SEPA_FIXTURE_DIR + "/README.md\"";
+    const auto result = run(cmd);
+    REQUIRE(result.exit_code != 0);
+}

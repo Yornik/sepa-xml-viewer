@@ -8,6 +8,12 @@ target_link_libraries(integration_tests
         Catch2::Catch2WithMain
 )
 
+# Fixture path for the --check tests. Same convention as the unit tests.
+target_compile_definitions(integration_tests
+    PRIVATE
+        SEPA_FIXTURE_DIR="${CMAKE_SOURCE_DIR}/tests/example-xml"
+)
+
 # Same C4996 / std::getenv exemption as the GUI test target — see
 # tests/gui/CMakeLists.txt for the rationale.
 if(MSVC)
