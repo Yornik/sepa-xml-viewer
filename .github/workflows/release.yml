@@ -117,8 +117,10 @@ jobs:
         run: cpack --verbose
 
       # AppImage is built separately on Linux only — linuxdeploy is not bundled
-      # with CPack. Download the binaries, install the app to an AppDir, run
-      # linuxdeploy --plugin qt --output appimage.
+      # with CPack. Download the linuxdeploy binary, install the app to an
+      # AppDir, run linuxdeploy --output appimage. We do NOT pull in the qt
+      # plugin (see the rationale comment further down) — our binary is
+      # statically linked against Qt so there's nothing for it to deploy.
       - name: Build AppImage (Linux only)
         if: runner.os == 'Linux'
         working-directory: build/${{ matrix.preset }}
@@ -126,42 +128,35 @@ jobs:
           set -e
           cmake --install . --prefix AppDir
 
-          # linuxdeploy + qt plugin are AppImages hosted on GitHub releases.
           curl -sL -o linuxdeploy https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-          curl -sL -o linuxdeploy-plugin-qt https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
-          chmod +x linuxdeploy linuxdeploy-plugin-qt
+          chmod +x linuxdeploy
 
           # GitHub runner has a kernel that supports FUSE but the AppImage
           # runtime needs `--appimage-extract-and-run` to avoid fuse mount.
           export APPIMAGE_EXTRACT_AND_RUN=1
           export PATH="$PWD:$PATH"
 
-          # linuxdeploy-plugin-qt looks for qmake on PATH or via $QMAKE; vcpkg
-          # installs it under vcpkg_installed/<triplet>/tools/Qt6/bin/qmake.
-          # Locate it dynamically so the path tolerates future vcpkg layout
-          # changes; emit diagnostics on miss so the cause is obvious.
+          # NOTE: do NOT pass `--plugin qt`. linuxdeploy-plugin-qt scans the
+          # executable for dynamic libQt6Core.so / libQt6Gui.so / etc. and
+          # deploys those plus QML modules next to the binary. Our binary is
+          # STATICALLY linked against Qt (vcpkg builds qtbase static on Linux,
+          # see plan/00 §3.3 and the qt_import_plugins call in
+          # src/app/CMakeLists.txt), so ldd shows zero Qt libs — they live
+          # inside the binary. The plugin then aborts with "Could not find
+          # Qt modules to deploy", which is correct given its world model but
+          # not what we want.
           #
-          # IMPORTANT: must be an ABSOLUTE path. The linuxdeploy AppImage
-          # extracts and re-runs itself in a tempdir; the qt plugin then runs
-          # from that tempdir's working directory, so a relative path resolved
-          # against the original cwd becomes garbage. Pass realpath output.
-          QMAKE_REL=$(find vcpkg_installed -path '*Qt6/bin/qmake' -type f -executable | head -1)
-          if [ -z "$QMAKE_REL" ]; then
-            echo "ERROR: qmake not found anywhere under vcpkg_installed/" >&2
-            find vcpkg_installed -name '*qmake*' || true
-            exit 1
-          fi
-          QMAKE=$(realpath "$QMAKE_REL")
-          export QMAKE
-          echo "Using QMAKE=$QMAKE"
-          "$QMAKE" -query QT_INSTALL_PREFIX  # sanity-check we can actually run it
+          # QML files: already baked into the binary via Qt's qrc resource
+          # system through qt_add_qml_module.
+          # Platform plugins (offscreen, minimal): static-linked via
+          # qt_import_plugins.
+          # → bare linuxdeploy is enough; ldd picks up the non-Qt deps
+          # (libxcb-cursor, libfontconfig, etc.) and deploys them.
 
-          # The package homepage helps linuxdeploy figure out metadata.
           ./linuxdeploy \
             --appdir AppDir \
             --executable AppDir/bin/sepa-xml-viewer \
             --desktop-file AppDir/share/applications/sepa-xml-viewer.desktop \
-            --plugin qt \
             --output appimage
 
           # Move into the same location CPack writes to so the upload step
