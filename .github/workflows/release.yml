@@ -140,14 +140,21 @@ jobs:
           # installs it under vcpkg_installed/<triplet>/tools/Qt6/bin/qmake.
           # Locate it dynamically so the path tolerates future vcpkg layout
           # changes; emit diagnostics on miss so the cause is obvious.
-          QMAKE=$(find vcpkg_installed -path '*Qt6/bin/qmake' -type f -executable | head -1)
-          if [ -z "$QMAKE" ]; then
+          #
+          # IMPORTANT: must be an ABSOLUTE path. The linuxdeploy AppImage
+          # extracts and re-runs itself in a tempdir; the qt plugin then runs
+          # from that tempdir's working directory, so a relative path resolved
+          # against the original cwd becomes garbage. Pass realpath output.
+          QMAKE_REL=$(find vcpkg_installed -path '*Qt6/bin/qmake' -type f -executable | head -1)
+          if [ -z "$QMAKE_REL" ]; then
             echo "ERROR: qmake not found anywhere under vcpkg_installed/" >&2
             find vcpkg_installed -name '*qmake*' || true
             exit 1
           fi
+          QMAKE=$(realpath "$QMAKE_REL")
           export QMAKE
           echo "Using QMAKE=$QMAKE"
+          "$QMAKE" -query QT_INSTALL_PREFIX  # sanity-check we can actually run it
 
           # The package homepage helps linuxdeploy figure out metadata.
           ./linuxdeploy \
