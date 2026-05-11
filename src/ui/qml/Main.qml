@@ -190,13 +190,29 @@ ApplicationWindow {
                                     }
                                 }
 
-                                // Default TreeViewDelegate already renders
-                                // the model's display role with the active
-                                // style. Overriding `contentItem` here was
-                                // shadowing the role-binding TreeViewDelegate
-                                // already does, which broke row population
-                                // on TableView's incubator pass.
-                                delegate: TreeViewDelegate {}
+                                // Default TreeViewDelegate's built-in
+                                // disclosure arrow is too subtle in the
+                                // Material dark theme on Windows — users
+                                // didn't realise PaymentInfo rows were
+                                // expandable. Override `indicator` with an
+                                // unambiguous ▶ / ▼ chevron that's legible
+                                // on any background. The default delegate's
+                                // role-binding for the row label is kept
+                                // by *not* overriding `contentItem`.
+                                delegate: TreeViewDelegate {
+                                    id: treeDelegate
+                                    indicator: Label {
+                                        visible: treeDelegate.hasChildren
+                                        text: treeDelegate.expanded ? "▼" : "▶"
+                                        opacity: 0.95
+                                        // 1.2× the row's text size — small
+                                        // enough to feel like an indicator
+                                        // not a column, big enough that
+                                        // dark-theme users on Windows can
+                                        // actually see it.
+                                        font.pixelSize: treeDelegate.font.pixelSize * 1.2
+                                    }
+                                }
                             }
                         }
 

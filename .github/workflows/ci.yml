@@ -83,6 +83,14 @@ jobs:
         with:
           path: ${{ github.workspace }}/vcpkg-binary-cache
           key: vcpkg-bincache-ubuntu-22.04-${{ hashFiles('vcpkg.json') }}-v1
+          # Same prefix-fallback as the matrix legs (line 274). Without
+          # this, any vcpkg.json change (e.g. adding pugixml in PR #23)
+          # is a strict cache miss for tidy — Qt has to rebuild from
+          # source, ~30–50 min on a single runner — while the matrix
+          # legs sail through in ~3 min via the fallback. Keep them in
+          # sync.
+          restore-keys: |
+            vcpkg-bincache-ubuntu-22.04-
 
       - name: Install Qt build prerequisites (Linux)
         run: |

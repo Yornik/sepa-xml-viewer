@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-05-11
+
+First public release. Tag `v0.1.0`. Six artefacts (`.deb`, `.rpm`, `.AppImage`, `.dmg`, NSIS `.exe`, ZIP) on the [GitHub Release](https://github.com/Yornik/sepa-xml-viewer/releases/tag/v0.1.0). A prior tag `v0.0.1` exists in the repo but was never publicly released — it was the infrastructure-proof draft. Everything below was part of getting v0.1.0 out the door.
+
 ### Added
 
 - **Phase 1 MVP viewer.** `pain.001.001.13` files can be opened — drag-and-drop on the window, `File → Open…`, or pass the path on the command line. Tree pane on the left shows the GroupHeader / PaymentInfo / Transaction nesting; detail pane on the right lists the fields of the selected node; a third tab shows the raw XML. New `src/core/sepa.{h,cpp}` parser is pugixml-backed and exposes a `parseFile()` API returning a tagged-union `ParseResult` (status + error message + parsed tree + raw bytes); `src/ui/sepa_controller.{h,cpp}` bridges the parser to QML as a `QML_SINGLETON` whose `loadFile(QUrl)` slot the UI calls on drop / open / startup-arg. Unrecognized SEPA versions (e.g. `pain.001.001.09`) get a clear inline message rather than a crash. Plan: [`plan/01-mvp-viewer.md`](plan/01-mvp-viewer.md).
