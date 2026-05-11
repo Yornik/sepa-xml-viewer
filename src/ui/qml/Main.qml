@@ -205,10 +205,12 @@ ApplicationWindow {
                                         visible: treeDelegate.hasChildren
                                         text: treeDelegate.expanded ? "▼" : "▶"
                                         opacity: 0.95
-                                        // No explicit font.pixelSize so the
-                                        // chevron inherits the active style's
-                                        // default and stays in proportion
-                                        // with the row label on every theme.
+                                        // 1.2× the row's text size — small
+                                        // enough to feel like an indicator
+                                        // not a column, big enough that
+                                        // dark-theme users on Windows can
+                                        // actually see it.
+                                        font.pixelSize: treeDelegate.font.pixelSize * 1.2
                                     }
                                 }
                             }
