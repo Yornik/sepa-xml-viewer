@@ -23,13 +23,22 @@ Runs fully offline; never makes network requests; never edits or signs \
 payment data. Targets HR, payroll, and accounting users who occasionally \
 need to inspect a SEPA file from their bank or payroll system.")
 set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/Yornik/sepa-xml-viewer")
-set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+# Prefer the git-derived version (set by cmake/ProjectVersion.cmake from
+# `git describe --tags --dirty --always`, with the leading 'v' stripped) so
+# artefact filenames read 'sepa-xml-viewer-0.0.1-...' rather than
+# 'sepa-xml-viewer-0.0.0-...' (which is the project() VERSION baseline).
+# Falls back to PROJECT_VERSION when git describe wasn't usable.
+if(SEPA_VIEWER_PACKAGE_VERSION)
+    set(CPACK_PACKAGE_VERSION "${SEPA_VIEWER_PACKAGE_VERSION}")
+else()
+    set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+endif()
 set(CPACK_PACKAGE_CONTACT "Yornik <yornik@example.invalid>")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
 set(CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/README.md")
 
-# Stable filenames per generator: sepa-xml-viewer_<version>_<arch>.<ext>.
-set(CPACK_PACKAGE_FILE_NAME "sepa-xml-viewer-${PROJECT_VERSION}-${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}")
+# Stable filenames per generator: sepa-xml-viewer-<version>-<system>-<arch>.<ext>.
+set(CPACK_PACKAGE_FILE_NAME "sepa-xml-viewer-${CPACK_PACKAGE_VERSION}-${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}")
 
 if(WIN32)
     set(CPACK_GENERATOR "NSIS;ZIP")

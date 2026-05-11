@@ -30,6 +30,13 @@ endif()
 
 message(STATUS "sepa-xml-viewer version: ${SEPA_VIEWER_VERSION_STRING}")
 
+# Packaging-friendly version: strip leading 'v' from tags like 'v0.0.1' so
+# CPack-produced filenames read 'sepa-xml-viewer-0.0.1-...' rather than
+# 'sepa-xml-viewer-v0.0.1-...' (and replace any '-dirty' suffix for cleaner
+# output — packaging shouldn't emit a "dirty" file).
+string(REGEX REPLACE "^v" "" SEPA_VIEWER_PACKAGE_VERSION "${SEPA_VIEWER_VERSION_STRING}")
+string(REGEX REPLACE "-dirty$" "" SEPA_VIEWER_PACKAGE_VERSION "${SEPA_VIEWER_PACKAGE_VERSION}")
+
 configure_file(
     "${CMAKE_SOURCE_DIR}/src/version.h.in"
     "${CMAKE_BINARY_DIR}/include/sepa/version.h"

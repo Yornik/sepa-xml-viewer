@@ -158,6 +158,18 @@ jobs:
           # discovery has edge cases on the runner's filesystem (the symlink
           # step it does into AppDir root looks for an "icon executable" in
           # standard system paths first); an explicit flag short-circuits it.
+          #
+          # OUTPUT controls the AppImage output filename. Default would name
+          # it after the .desktop Name= field (`SEPA_XML_Viewer-x86_64.AppImage`),
+          # which is mixed-case and has no version. Match CPack's naming so
+          # all six release artefacts read consistently.
+          # ${{ github.ref_name }} is the tag (e.g. `v0.0.1-rc5`); strip the
+          # leading `v` so filenames match the CPack `<name>-<version>-...`
+          # convention.
+          TAG="${{ github.ref_name }}"
+          VERSION="${TAG#v}"
+          export OUTPUT="sepa-xml-viewer-${VERSION}-Linux-x86_64.AppImage"
+
           ./linuxdeploy \
             --appdir AppDir \
             --executable AppDir/bin/sepa-xml-viewer \
