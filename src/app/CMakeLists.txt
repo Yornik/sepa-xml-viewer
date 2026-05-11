@@ -58,7 +58,7 @@ set_target_properties(sepa-xml-viewer PROPERTIES
 #            doesn't follow. Tagging the target here is the "register"; the
 #            "deploy" half lives next to the rest of the Windows packaging.)
 install(TARGETS sepa-xml-viewer
+    RUNTIME_DEPENDENCY_SET sepa_runtime_deps
     BUNDLE  DESTINATION .
     RUNTIME DESTINATION bin
-    RUNTIME_DEPENDENCY_SET sepa_runtime_deps
 )
