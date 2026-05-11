@@ -38,6 +38,21 @@ target_link_libraries(sepa-xml-viewer
 
 set_target_properties(sepa-xml-viewer PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-    WIN32_EXECUTABLE OFF
-    MACOSX_BUNDLE OFF
+    # On Windows in Release configurations, hide the console window — desktop
+    # users expect a GUI app, not a flashing cmd.exe. Debug builds keep the
+    # console for diagnostics.
+    WIN32_EXECUTABLE $<CONFIG:Release>
+    # macOS .dmg packaging requires a bundle. Bundle on by default also makes
+    # the dev workflow `open ./build/.../bin/sepa-xml-viewer.app` work.
+    MACOSX_BUNDLE ON
+)
+
+# Install rules used by CPack. Per platform:
+#   Linux:   binary -> /usr/bin/, .desktop and icon installed by Packaging.cmake
+#   macOS:   bundle -> /Applications/sepa-xml-viewer.app
+#   Windows: binary -> <install_prefix>/bin/sepa-xml-viewer.exe
+#            (windeployqt copies Qt DLLs alongside it during install)
+install(TARGETS sepa-xml-viewer
+    BUNDLE  DESTINATION .
+    RUNTIME DESTINATION bin
 )

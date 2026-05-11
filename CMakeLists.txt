@@ -38,3 +38,7 @@ if(SEPA_VIEWER_BUILD_TESTS)
     include(Catch)
     add_subdirectory(tests)
 endif()
+
+# CPack configuration. Must come AFTER all install() rules — CPack reads
+# them when packaging.
+include(cmake/Packaging.cmake)
