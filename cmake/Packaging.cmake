@@ -63,6 +63,34 @@ if(WIN32)
     else()
         message(WARNING "windeployqt not found; the Windows package will be missing Qt runtime files")
     endif()
+
+    # windeployqt copies Qt's own DLLs but it does NOT follow their transitive
+    # non-Qt deps. Qt6Core.dll links to z.dll (vcpkg's zlib), Qt6Gui.dll to
+    # libpng / freetype / harfbuzz, etc. Without these the binary fails at
+    # process-startup with a "z.dll was not found" error box on user machines
+    # — even though CI's --version smoke test passes (the runner's environment
+    # has the vcpkg bin/ on PATH, masking the gap).
+    #
+    # RUNTIME_DEPENDENCY_SET (CMake 3.21+) walks the executable's full DLL
+    # import graph at install time and copies every non-system dep alongside
+    # the binary. The PRE/POST_EXCLUDE_REGEXES list filters out Windows API
+    # set DLLs (api-ms-*, ext-ms-*) and anything resolved out of System32 —
+    # those are guaranteed to be present on every Windows install and must
+    # NOT be redistributed.
+    #
+    # DIRECTORIES tells the resolver where to look for DLLs whose location
+    # isn't already encoded in an imported target. $<TARGET_FILE_DIR:Qt6::Core>
+    # is vcpkg's installed bin/, which is where z.dll and friends live.
+    install(RUNTIME_DEPENDENCY_SET sepa_runtime_deps
+        PRE_EXCLUDE_REGEXES
+            [[api-ms-.*\.dll]]
+            [[ext-ms-.*\.dll]]
+        POST_EXCLUDE_REGEXES
+            [[.*[\\/][Ss]ystem32[\\/].*]]
+        DIRECTORIES
+            "$<TARGET_FILE_DIR:Qt6::Core>"
+        RUNTIME DESTINATION bin
+    )
 elseif(APPLE)
     set(CPACK_GENERATOR "DragNDrop")
     set(CPACK_DMG_VOLUME_NAME "SEPA XML Viewer ${PROJECT_VERSION}")

@@ -51,8 +51,14 @@ set_target_properties(sepa-xml-viewer PROPERTIES
 #   Linux:   binary -> /usr/bin/, .desktop and icon installed by Packaging.cmake
 #   macOS:   bundle -> /Applications/sepa-xml-viewer.app
 #   Windows: binary -> <install_prefix>/bin/sepa-xml-viewer.exe
-#            (windeployqt copies Qt DLLs alongside it during install)
+#            (windeployqt copies Qt's own DLLs alongside it; the matching
+#            install(RUNTIME_DEPENDENCY_SET sepa_runtime_deps ...) call in
+#            cmake/Packaging.cmake then walks the executable's full DLL graph
+#            and copies non-Qt transitive deps such as z.dll that windeployqt
+#            doesn't follow. Tagging the target here is the "register"; the
+#            "deploy" half lives next to the rest of the Windows packaging.)
 install(TARGETS sepa-xml-viewer
     BUNDLE  DESTINATION .
     RUNTIME DESTINATION bin
+    RUNTIME_DEPENDENCY_SET sepa_runtime_deps
 )

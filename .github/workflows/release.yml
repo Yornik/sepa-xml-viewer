@@ -219,11 +219,38 @@ jobs:
         shell: pwsh
         working-directory: build/${{ matrix.preset }}
         run: |
+          $ErrorActionPreference = 'Stop'
           $exe = Get-ChildItem -Filter "sepa-xml-viewer-*.exe" | Select-Object -First 1
           $zip = Get-ChildItem -Filter "sepa-xml-viewer-*.zip" | Select-Object -First 1
           # ZIP path — extract and run.
           Expand-Archive $zip -DestinationPath C:\sepa-zip -Force
-          & "C:\sepa-zip\$($zip.BaseName)\bin\sepa-xml-viewer.exe" --version
+          $zipBin = "C:\sepa-zip\$($zip.BaseName)\bin"
+
+          # Diagnostic: print the DLLs CPack bundled so the log shows whether
+          # install(RUNTIME_DEPENDENCY_SET ...) actually copied non-Qt deps.
+          Write-Host "===== ZIP bin/ contents ====="
+          Get-ChildItem $zipBin -Filter *.dll | Format-Table Name, Length
+
+          # Hard guard: --version fast-paths past the Windows loader's DLL
+          # resolution for parts of Qt, so a missing transitive DLL (e.g. zlib's
+          # z.dll) won't trip the smoke test if we only run --version. Assert
+          # the DLLs we know Qt6Core.dll pulls in are present in the install
+          # bin/ — that's what failed on the v0.0.1 release.
+          $coreDeps = @('Qt6Core.dll')
+          # z.dll is vcpkg's zlib import — it's the one that bit us in v0.0.1.
+          # If vcpkg starts shipping it under a different name in the future,
+          # this guard will fail loudly and we'll update the list.
+          $transitiveDeps = @('z.dll')
+          foreach ($dll in ($coreDeps + $transitiveDeps)) {
+              $path = Join-Path $zipBin $dll
+              if (-not (Test-Path $path)) {
+                  Write-Error "Missing required DLL in install bin/: $dll"
+                  exit 1
+              }
+              Write-Host "OK: $dll present"
+          }
+
+          & "$zipBin\sepa-xml-viewer.exe" --version
           # NSIS installer path — silent install + run.
           Start-Process -Wait $exe.FullName -ArgumentList "/S","/D=C:\sepa-installed"
           & "C:\sepa-installed\bin\sepa-xml-viewer.exe" --version
