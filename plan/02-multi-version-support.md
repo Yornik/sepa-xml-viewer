@@ -1,4 +1,4 @@
-# Multi-Version SEPA Support — Phase 1 Architectural Commitment
+# Multi-Version SEPA Support — Phase 2 Architectural Commitment
 
 Status: draft, 2026-05-08
 Owner: @yornik
@@ -20,9 +20,9 @@ The viewer must open and render any ISO 20022 SEPA message at any published vers
 | `pain.014`     | `pain.014.001.07`                    | SRTP status report                                    |
 | `pacs.028`     | `pacs.028.001.03`                    | FI to FI Payment Status Request (SRTP)                |
 | `camt.029`     | `camt.029.001.09`                    | Resolution of Investigation (SRTP)                   |
-| `camt.052`     | TBD at Phase 1 entry                 | Bank-to-Customer Account Report                      |
-| `camt.053`     | TBD at Phase 1 entry                 | Bank-to-Customer Statement                           |
-| `camt.054`     | TBD at Phase 1 entry                 | Bank-to-Customer Debit/Credit Notification           |
+| `camt.052`     | TBD at Phase 2 entry                 | Bank-to-Customer Account Report                      |
+| `camt.053`     | TBD at Phase 2 entry                 | Bank-to-Customer Statement                           |
+| `camt.054`     | TBD at Phase 2 entry                 | Bank-to-Customer Debit/Credit Notification           |
 | `camt.055`     | `camt.055.001.08`                    | Customer Payment Cancellation Request (SRTP)         |
 
 For each family the goal is to support **all published versions** that ever shipped in production volume, not just the current version. The concrete historical version list is stocked when each adapter is implemented (§7); this document does not pre-claim a definitive count.
@@ -155,18 +155,18 @@ For each adapter shipped, at least:
 
 ## 7. Phasing
 
-- **Phase 1** — parser architecture established. Namespace detection, canonical model, adapter interface, and adapters for **current** versions only:
+- **Phase 2** — parser architecture established. Namespace detection, canonical model, adapter interface, and adapters for **current** versions only:
   - `pain.001.001.13`, `pain.008.001.12`, `pain.002.001.15`, `pain.007.001.13`
   - The full SRTP V4.0 set: `pain.013.001.10`, `pain.014.001.07`, `pacs.028.001.03`, `camt.029.001.09`, `camt.055.001.08`
-  - Latest `camt.052` / `camt.053` / `camt.054` (exact versions confirmed at Phase 1 entry)
+  - Latest `camt.052` / `camt.053` / `camt.054` (exact versions confirmed at Phase 2 entry)
   - Multi-version *capability* lives in the architecture but is not yet stocked with historical adapters.
-- **Phase 1.5 — historical coverage**. Stock historical adapters in priority order based on real-world archive prevalence:
+- **Phase 2.5 — historical coverage**. Stock historical adapters in priority order based on real-world archive prevalence:
   - `pain.001` legacy versions — `.03`, `.05`, `.08`, `.09` are highest-impact targets; most legacy archives use one of these.
   - `pain.008` legacy versions in parallel.
   - `camt.053` legacy versions (bank-statement archives go back further than payment-initiation files).
   - Less-used messages last.
-- **Phase 2** — UI built on the canonical model, version-agnostic from day one. Includes the "this file is version X" indicator and the "newer than this app knows" graceful-degradation path (see §8).
-- **Phase 3** — signature verification and decryption (covered in a separate plan once committed; sketched in conversation as `xmlsec1`-based, offline, with user-supplied private keys for decryption).
+- **Phase 3** — UI built on the canonical model, version-agnostic from day one. Includes the "this file is version X" indicator and the "newer than this app knows" graceful-degradation path (see §8).
+- **Phase 4** — signature verification and decryption (covered in a separate plan once committed; sketched in conversation as `xmlsec1`-based, offline, with user-supplied private keys for decryption).
 
 ---
 

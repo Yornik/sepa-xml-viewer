@@ -4,7 +4,7 @@ This file orients Claude (and any other AI agent or new human contributor) the f
 
 ## What this project is
 
-A modern, cross-platform desktop GUI application for viewing SEPA (Single Euro Payments Area) payment messages — the ISO 20022 XML files that European banks, PSPs, and businesses exchange. Phase 1 onward, the viewer parses files like `pain.001` credit-transfer initiations, `pain.008` direct-debit initiations, `camt.05x` account reports, and the `pain.013`/`pain.014`/`pacs.028`/`camt.055`/`camt.029` family used by SEPA Request-to-Pay (SRTP).
+A modern, cross-platform desktop GUI application for viewing SEPA (Single Euro Payments Area) payment messages — the ISO 20022 XML files that European banks, PSPs, and businesses exchange. Phase 2 onward, the viewer parses files like `pain.001` credit-transfer initiations, `pain.008` direct-debit initiations, `camt.05x` account reports, and the `pain.013`/`pain.014`/`pacs.028`/`camt.055`/`camt.029` family used by SEPA Request-to-Pay (SRTP).
 
 The viewer is read-only. It does not initiate payments, edit messages, or talk to bank APIs. Its job is to make a SEPA XML file legible — tree view, detail pane, schema validation report, raw XML with syntax highlighting.
 
@@ -14,7 +14,7 @@ Target platforms: **Linux**, **macOS**, **Windows** — all from one codebase.
 
 **Init phase (Phase 0).** No application code yet beyond what the init PRs introduce. The full plan for what Phase 0 delivers is at [`plan/00-init-phase.md`](plan/00-init-phase.md). Read that before you start any infrastructure work — it defines the scope fence and the Definition of Done.
 
-If you find yourself building SEPA parsing logic during the init phase, stop. That belongs to Phase 1, which has not been planned yet.
+If you find yourself building SEPA parsing logic during the init phase, stop. That belongs to Phase 2, which has not been planned yet.
 
 ## Toolchain at a glance
 
@@ -24,7 +24,7 @@ If you find yourself building SEPA parsing logic during the init phase, stop. Th
 | Build system         | CMake 3.25+ with `CMakePresets.json`            |
 | Dependency manager   | vcpkg (manifest mode)                           |
 | GUI framework        | Qt 6 (Qt Quick / QML), dynamically linked       |
-| XML library          | pugixml (Phase 1+); Xerces-C++ for XSD validation later |
+| XML library          | pugixml (Phase 2+); Xerces-C++ for XSD validation later |
 | Test frameworks      | Catch2 v3 (unit + integration), Qt Test (GUI smoke) |
 | Lint / format        | clang-format, clang-tidy, warnings-as-errors    |
 | CI / packaging       | GitHub Actions (matrix: Linux/macOS/Windows), CPack + AppImage + NSIS |
@@ -34,7 +34,7 @@ The reasoning behind each of these is in [`plan/00-init-phase.md`](plan/00-init-
 ## Where things live
 
 - `src/app/` — the application entry point. Phase 0 has just enough code to open a window.
-- `src/core/` — SEPA parser library (Phase 1+). Empty or skeleton in Phase 0.
+- `src/core/` — SEPA parser library (Phase 2+). Empty or skeleton in Phase 0.
 - `src/ui/qml/` — QML files for the GUI.
 - `tests/unit/`, `tests/integration/`, `tests/gui/` — three test layers, all run in CI.
 - `cmake/` — CMake helper modules (warnings, packaging, version-from-git).
