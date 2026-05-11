@@ -126,30 +126,31 @@ Explicit, not generic. The user should understand *why* it didn't work.
 
 ## 8. Definition of Done
 
-1. ☐ Dropping a valid `pain.001.001.13` file on the window renders the tree and the detail pane. Interactive (subjectively snappy) on files with up to 100 transactions. Wire a benchmark only if a real fixture feels slow.
+1. ☐ Dropping a valid `pain.001.001.13` file on the window renders the tree and the detail pane. Interactive (subjectively snappy) on the 5-transaction `pain.001.001.13-payroll-and-suppliers.xml` narrative fixture *and* the 2500-transaction `pain.001.001.13-payroll-2500-stress.xml` stress fixture. If the stress fixture freezes the UI, that's blocking — wire a fix or paginate the tree before shipping.
 2. ☐ The Raw XML tab shows the file's content unmodified except for trivial indentation.
 3. ☐ Switching tree nodes updates the detail pane synchronously.
 4. ☐ Opening a non-SEPA XML file (or an unsupported SEPA version) shows the recognition-failure message in §7, not a crash.
 5. ☐ Opening a malformed XML file shows a single-line error message, not a crash.
-6. ☐ Catch2 unit test covers the parser against the existing `tests/example-xml/` fixture.
+6. ☐ Catch2 unit test covers the parser against both `tests/example-xml/` `pain.001.001.13-*.xml` fixtures.
 7. ☐ Integration test: command-line invocation of the binary with a fixture file path produces a non-zero diagnostic on stderr if parsing fails; zero exit on success. (Future-proofs the Phase 6 CLI.)
 8. ☐ GUI smoke test on Windows: launches the binary with a fixture file argument, sleeps 3 s, asserts the process is alive (event loop healthy) and stderr does not contain `is not installed` or `failed to load`. This PR also adds the test — same shape as the Phase 0 v0.0.1 retag's smoke step.
 9. ☐ `git tag v0.1.0 && git push --tags` produces the same six artefacts Phase 0 v0.0.1 produced, all carrying the new binary, all passing their existing CI smoke checks.
 10. ☐ README has a one-paragraph "What v0.1.0 does and doesn't do" callout that sets correct expectations.
 
-## 9. PR sequencing
+## 9. Delivery
 
-MVP-first: the first PR puts something visible on screen. Everything else iterates from there.
+**One PR.** The MVP is a single user-facing feature ("open SEPA file → see structure"); splitting it into smaller PRs produces intermediate states that are neither shippable nor reviewable on their own (parser-without-UI doesn't help anyone, UI-without-parser is meaningless). The maintainer is solo, so the "smaller PRs are easier to review" argument doesn't apply either.
 
-| PR | Scope | Effort |
-| -- | ----- | ------ |
-| #1 | **First visible result.** `src/core/sepa.cpp` parses a `pain.001.001.13` happy-path fixture into an in-memory tree. Minimal QML `TreeView` shows the GroupHeader / PaymentInfo / Transaction nesting from a hard-coded fixture path. No file-open UI yet — the binary loads the fixture at startup, drops you straight into the tree. Catch2 covers the parser; the screen proves the binding works end-to-end. | 1.5d |
-| #2 | Detail pane. Selecting a tree node shows the node's fields as a (key, value) table on the right. | 0.5d |
-| #3 | File → Open and drag-and-drop replace the hard-coded fixture. Window remembers size between launches. | 0.5d |
-| #4 | Raw XML tab. Recognition-failure UI for unsupported versions (read root `xmlns`, show the §7 message). Malformed-XML UI. | 1d |
-| #5 | Integration test (CLI invocation with fixture path) + GUI smoke (event-loop-alive + no QML errors, reusing the Phase 0 §12 PR #9 Windows pattern). README "What v0.1.0 does" callout. Tag `v0.1.0`. | 0.5d |
+What the PR contains:
+- `src/core/sepa.{h,cpp}` — pugixml-backed parser for `pain.001.001.13` into a Qt-friendly in-memory tree.
+- QML `TreeView` + detail pane + Raw XML tab. File → Open menu + drag-and-drop. Window-size persistence.
+- Recognition-failure UI (§7) for unsupported versions; malformed-XML UI for parse errors.
+- Catch2 unit test against both `pain.001.001.13-*.xml` fixtures.
+- Integration test that invokes the binary with a fixture path.
+- Windows-side GUI smoke test added to `release.yml` mirroring the v0.0.1 pattern.
+- README "What v0.1.0 does today" callout aligned with the table already in the project README.
 
-Total ballpark: **~4 engineer-days**. Day 1 ends with a working tree on screen; everything after that improves an already-working thing rather than building toward one.
+Ballpark **~4 engineer-days**, ending in a `git tag v0.1.0` that ships the same six artefacts Phase 0 produced — now actually doing something useful.
 
 ## 10. What success looks like for Phase 1
 
