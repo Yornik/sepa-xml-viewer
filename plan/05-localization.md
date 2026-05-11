@@ -2,7 +2,7 @@
 
 Status: draft, 2026-05-08
 Owner: @yornik
-Scope: the four user-interface languages the viewer commits to support, the data-vs-display split that keeps the SEPA standard interoperable across the EU, the per-locale formatting rules, and the translation workflow. Phase 2 ships i18n-ready (English-only). Phase 3 ships actual translations.
+Scope: the four user-interface languages the viewer commits to support, the data-vs-display split that keeps the SEPA standard interoperable across the EU, the per-locale formatting rules, and the translation workflow. Phase 3 ships i18n-ready (English-only). Phase 4 ships actual translations.
 
 ---
 
@@ -26,7 +26,7 @@ The viewer auto-selects the UI language from the OS locale on first run and lets
 These four cover the bulk of SEPA-region office-worker exposure:
 
 - **English** — the international default and the language a non-localized fallback should use. Many EU professionals work in English regardless of native language.
-- **German** — Germany is the largest single SEPA market by volume; combined with Austria and Swiss-German offices it is a substantial audience. Also the dominant EBICS user-base ([`plan/03-signing-and-encryption.md`](03-signing-and-encryption.md) §9 covers EBICS framing).
+- **German** — Germany is the largest single SEPA market by volume; combined with Austria and Swiss-German offices it is a substantial audience. Also the dominant EBICS user-base ([`plan/04-signing-and-encryption.md`](04-signing-and-encryption.md) §9 covers EBICS framing).
 - **French** — France itself, plus the Walloon region of Belgium, Luxembourg, and Monaco. France has its own banking conventions (separator, currency placement) distinct from the rest of the EU; getting the formatting right is a trust signal.
 - **Dutch** — the Netherlands has high SEPA adoption and a population that often interacts with payment files directly via accounting and HR systems. Flanders (Belgium) is the second large Dutch-speaking SEPA region.
 
@@ -183,7 +183,7 @@ src/
 │   └── README.md                    # how to contribute translations
 ```
 
-**Build integration** (Phase 2): CMake target `update-translations` runs `lupdate`; the regular build runs `lrelease` and bundles `.qm` files. The user-visible English strings drive `lupdate` extraction so that adding a new English string surfaces in every `.ts` file as untranslated, ready for translators.
+**Build integration** (Phase 3): CMake target `update-translations` runs `lupdate`; the regular build runs `lrelease` and bundles `.qm` files. The user-visible English strings drive `lupdate` extraction so that adding a new English string surfaces in every `.ts` file as untranslated, ready for translators.
 
 **Translator sourcing for 1.0:**
 - German: paid translator with banking domain experience (DATEV / SEPA familiarity preferred).
@@ -200,20 +200,20 @@ src/
 
 ## 8. Phasing
 
-- **Phase 2** — i18n-ready. Every visible string in `qsTr()`. `lupdate` and `lrelease` integrated into the build. `src/i18n/sepa-xml-viewer_en.ts` populated. UI ships English-only but the infrastructure is there for translations to drop in without code changes.
-- **Phase 3** — translations land:
+- **Phase 3** — i18n-ready. Every visible string in `qsTr()`. `lupdate` and `lrelease` integrated into the build. `src/i18n/sepa-xml-viewer_en.ts` populated. UI ships English-only but the infrastructure is there for translations to drop in without code changes.
+- **Phase 4** — translations land:
   - **3a**: German first (largest SEPA market, biggest immediate-value win).
   - **3b**: Dutch and French in the same release window after German lands.
   - **3c**: native-speaker review pass for all three before tagging a 1.0 candidate.
-- **Phase 4 onward** — additional locales by demand or volunteer. No code changes; only `.ts` files added and a one-line `lrelease` registration.
+- **Phase 5 onward** — additional locales by demand or volunteer. No code changes; only `.ts` files added and a one-line `lrelease` registration.
 
-The cheap part is doing it right in Phase 2. The expensive part is retrofitting it after a year of hard-coded English strings have accumulated. Phase 2 commits to the cheap part.
+The cheap part is doing it right in Phase 3. The expensive part is retrofitting it after a year of hard-coded English strings have accumulated. Phase 3 commits to the cheap part.
 
 ---
 
 ## 9. Testing
 
-Three layers, mirroring [`plan/00-init-phase.md`](00-init-phase.md) §6 and [`plan/02-viewer-ui.md`](02-viewer-ui.md):
+Three layers, mirroring [`plan/00-init-phase.md`](00-init-phase.md) §6 and [`plan/03-viewer-ui.md`](03-viewer-ui.md):
 
 **Unit tests (`tests/unit/i18n/`):**
 - Locale formatting tests — given an amount and a locale, assert the rendered string. Covers all four languages and their regional variants (de-DE / de-AT / de-CH? — see Open Questions).
@@ -235,6 +235,6 @@ Three layers, mirroring [`plan/00-init-phase.md`](00-init-phase.md) §6 and [`pl
 
 1. **Regional variant granularity.** Do we ship `de-DE` only, or `de-DE` + `de-AT` + `de-CH`? The differences are real but small (currency placement in `de-AT`, possibly some vocabulary in `de-CH`). Pragmatic default: ship `de` (using `de-DE` formatting as the canonical form), let `Qt.locale()` handle the regional formatting variations natively, ship a single translation per language. Revisit if user feedback warrants per-region overrides.
 2. **Translator sourcing.** The plan above assumes paid translators for 1.0; budget needs to be confirmed. Volunteers may cover specific languages — that is fine for post-1.0 additions but the four committed languages should be paid+reviewed for the trust signal of a polished initial release.
-3. **Untranslated-string fallback.** When a string is missing from a `.ts` file, Qt falls back to the `qsTr()` source string (English). Acceptable default. Alternative: ship "(untranslated: ...)" markers in development builds to make the gap obvious. Decide at Phase 3 entry.
+3. **Untranslated-string fallback.** When a string is missing from a `.ts` file, Qt falls back to the `qsTr()` source string (English). Acceptable default. Alternative: ship "(untranslated: ...)" markers in development builds to make the gap obvious. Decide at Phase 4 entry.
 4. **Plural forms.** Some strings need plural variants (`"1 transaction"` / `"5 transactions"` is `"1 Buchung"` / `"5 Buchungen"` in German but the rules vary across languages — Polish has three plural forms, French has two). Use Qt's `tr("%n transaction(s)", "", count)` plural-aware overload from the start; do not hard-code plural strings.
 5. **Right-to-left readiness.** Out of scope for the four committed languages (all LTR). Revisit when adding Arabic / Hebrew is on the table; Qt Quick supports RTL natively but the layouts may need testing.

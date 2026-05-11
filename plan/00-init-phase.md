@@ -40,7 +40,7 @@ The single sentence of definition: **`git tag v0.0.1 && git push --tags` produce
 
 The primary user is **a non-technical office worker** — HR professionals, payroll administrators, accountants, finance staff — who occasionally needs to open a SEPA file their bank or payroll system produced and understand what is in it. They are not programmers, do not know XPath, and have not read the ISO 20022 specification. They want to open a file, see "who paid whom what, when," and trust the tool not to break their machine.
 
-This audience drives several Phase 1+ decisions, captured here so they are not re-derived later:
+This audience drives several Phase 2+ decisions, captured here so they are not re-derived later:
 
 - **Plain-language UI by default**, with an opt-in technical mode that exposes raw ISO 20022 element names. Examples: "Sender" instead of "Debtor", "Recipient" instead of "Creditor", "€123.45" instead of "EUR 123.45", "15 May 2026" instead of "2026-05-15".
 - **Drag-and-drop file open** as the primary entry point. File-Open dialog as a fallback, command-line file argument as a tertiary path.
@@ -48,11 +48,11 @@ This audience drives several Phase 1+ decisions, captured here so they are not r
 - **No CLI surface as user experience**. `--version` exists only for the release-pipeline smoke gate; the audience does not use the terminal.
 - **Localized formatting** — currency, date, number formatting follow the OS locale. A US/UK user sees "£" or "$" in their own conventions; a German user sees "€1.234,56".
 - **Qt Quick (QML) reinforced as the GUI choice** over Qt Widgets — the audience benefits from polished modern controls and theming rather than the developer-tool aesthetic Qt Widgets produces by default. See §3.4 for the full reasoning.
-- **Internationalization** via Qt Linguist (English plus at least one major EU language at first) is part of the Phase 3 commitment, not Phase 2.
-- **Accessibility is not optional** when the audience includes office users on managed devices; screen-reader support, keyboard navigation, and font scaling are tracked as Phase 2 deliverables, not "nice-to-haves."
+- **Internationalization** via Qt Linguist (English plus at least one major EU language at first) is part of the Phase 4 commitment, not Phase 3.
+- **Accessibility is not optional** when the audience includes office users on managed devices; screen-reader support, keyboard navigation, and font scaling are tracked as Phase 3 deliverables, not "nice-to-haves."
 - **Trust signals matter more than functionality at first impression.** A real icon (not a placeholder), a code-signed installer (eventually), a clear "this app does not access the internet" message, and an unambiguous "read-only" status visible in the UI all build the trust the audience needs to actually open a payroll file.
 
-Init phase (this plan) does **not** deliver any of these features. It records them so Phase 1+ planning starts from the right premise.
+Init phase (this plan) does **not** deliver any of these features. It records them so Phase 2+ planning starts from the right premise.
 
 ---
 
@@ -77,9 +77,9 @@ We do not invent or guess at SEPA message formats. The viewer will be developed 
 | `pain.014.001.07`    | current (SRTP V4)  | Creditor Payment Activation Request Status      |
 | `pacs.028.001.03`    | current (SRTP V4)  | FI to FI Payment Status Request                 |
 | `camt.029.001.09`    | current (SRTP V4)  | Resolution of Investigation                     |
-| `camt.052.001.x`     | TBD in Phase 1     | Bank-to-Customer Account Report                 |
-| `camt.053.001.x`     | TBD in Phase 1     | Bank-to-Customer Statement                      |
-| `camt.054.001.x`     | TBD in Phase 1     | Bank-to-Customer Debit/Credit Notification      |
+| `camt.052.001.x`     | TBD in Phase 2     | Bank-to-Customer Account Report                 |
+| `camt.053.001.x`     | TBD in Phase 2     | Bank-to-Customer Statement                      |
+| `camt.054.001.x`     | TBD in Phase 2     | Bank-to-Customer Debit/Credit Notification      |
 | `camt.055.001.08`    | current (SRTP V4)  | Customer Payment Cancellation Request           |
 
 The exact `camt.05x` versions in current EPC IGs will be confirmed when the parsing phase starts; do not vendor any XSDs based on guesses.
@@ -95,7 +95,7 @@ The exact `camt.05x` versions in current EPC IGs will be confirmed when the pars
 
 #### 2.3.1 SRTP V4.0 reference document set (all six artifacts retrieved 2026-05-08)
 
-The SRTP scheme is documented across three EPC document numbers — Payee-side (EPC258-22), Inter-RTP / PSP-to-PSP (EPC259-22), and Payer-side (EPC260-22) — each published as both an Implementation Guidelines PDF and a TVS XSD bundle ZIP. All six are listed below; they constitute the complete authoritative artifact set for SRTP and are the working reference for Phase 1 parser implementation.
+The SRTP scheme is documented across three EPC document numbers — Payee-side (EPC258-22), Inter-RTP / PSP-to-PSP (EPC259-22), and Payer-side (EPC260-22) — each published as both an Implementation Guidelines PDF and a TVS XSD bundle ZIP. All six are listed below; they constitute the complete authoritative artifact set for SRTP and are the working reference for Phase 2 parser implementation.
 
 | # | Document                                              | Format | Source                                                                                                                                                                                                                                  |
 | - | ----------------------------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -114,15 +114,15 @@ The three roles do not duplicate the same XSDs — each role exposes the subset 
 - **Inter-RTP role (EPC259, 12 XSDs)** — DS02 (`pain.013.001.10`), DS04b/DS05 (`pain.014.001.07`), DS08N/DS08P, DS11 (`camt.055.001.08`), DS12N/DS12P (`camt.029.001.09`), DS15RFC, DS15RTP (`pacs.028.001.03`), DS16RFC, DS16RTP.
 - **Payer role (EPC260, 4 XSDs)** — DS03 (`pain.013.001.10`), DS07N/DS07P (`pain.014.001.07`), DS15b (`pacs.028.001.03`).
 
-Practical consequence for the viewer: SRTP support requires the parser to recognize all three roles' datasets, but the underlying ISO 20022 message types reduce to five (`pain.013`, `pain.014`, `camt.055`, `camt.029`, `pacs.028`). Phase 1 will introduce these five plus the three "primary" SEPA messages (`pain.001`, `pain.002`, `pain.008`) and the bank-to-customer reporting trio (`camt.052`, `camt.053`, `camt.054`) — eleven message types total in the initial parser scope.
+Practical consequence for the viewer: SRTP support requires the parser to recognize all three roles' datasets, but the underlying ISO 20022 message types reduce to five (`pain.013`, `pain.014`, `camt.055`, `camt.029`, `pacs.028`). Phase 2 will introduce these five plus the three "primary" SEPA messages (`pain.001`, `pain.002`, `pain.008`) and the bank-to-customer reporting trio (`camt.052`, `camt.053`, `camt.054`) — eleven message types total in the initial parser scope.
 
 ### 2.4 Compliance dates we must surface in the viewer (eventually)
 
-- **15 November 2026** — unstructured address format may no longer be provided in EPC payment messages. The viewer should clearly flag unstructured addresses in messages dated on or after that day. (Implementation: Phase 2.)
+- **15 November 2026** — unstructured address format may no longer be provided in EPC payment messages. The viewer should clearly flag unstructured addresses in messages dated on or after that day. (Implementation: Phase 3.)
 
 ### 2.5 Schema acquisition strategy
 
-- During Phase 1 we will fetch the EPC TVS XSD bundles from the EPC document library and the ISO 20022 catalogue XSDs from iso20022.org.
+- During Phase 2 we will fetch the EPC TVS XSD bundles from the EPC document library and the ISO 20022 catalogue XSDs from iso20022.org.
 - We will **not** vendor the XSDs into this repository until license terms have been re-checked — the EPC bundles are publicly downloadable but redistribution rights need confirmation. A `tools/fetch-schemas.sh` script downloading them on demand into `third_party/schemas/` (gitignored) is the working assumption.
 - Sample test fixtures: prefer ISO 20022 catalogue sample messages (publicly available) over EPC documents for any committed fixtures. Anything sensitive-looking gets synthesized from scratch.
 
@@ -156,13 +156,13 @@ Each decision below states the choice, reasoning, and what would make us reverse
 - Reasoning: the user asked for a "modern GUI viewer." Qt Quick is GPU-accelerated, declarative, supports modern theming (Material, Universal, Fusion, Basic), animations, and high-DPI handling out of the box. The target audience (HR / non-technical office users — see §1 *Target audience*) reinforces this choice: Qt Widgets produces an aesthetic that reads as a developer tool, while Qt Quick's modern controls and theming are closer to what office staff expect from polished desktop software they use daily. Qt Widgets remains the more conservative power-user toolkit but produces an aesthetic that reads as legacy on Windows 11 and macOS Sequoia. Qt 6 ships an upgraded `TreeView` and table primitives in QML which were the historical reasons to fall back to Widgets.
 - **Linking: dynamic only.** Reasoning: Qt LGPL v3 permits dynamic linking without source-availability obligations on the application code. Static linking would require either a commercial Qt license or shipping object files for relinking — neither acceptable for an open-source-friendly init phase. Packages will bundle the required Qt runtime libraries via CPack and `windeployqt` / `macdeployqt`.
 - **`qtbase` configured without the `network` feature** in `vcpkg.json`. This enforces the offline-only guarantee from §1 (Goal #9) at the dependency-manifest level — `QNetworkAccessManager` and friends are simply not linked into the binary, so the offline property cannot regress through accidental imports during feature work. Any future CI lint rule or grep gate that reasserts this is welcome but not the load-bearing constraint; the manifest is.
-- Reverse if: QML `TreeView` performance is unacceptable on >10MB SEPA files. Fallback is a `QQuickWidget` embedding `QTreeView` from Qt Widgets, or a full Widgets pivot. This decision is reversible at Phase 2 with no infrastructure churn — both stacks share the same build/CI/packaging plumbing.
+- Reverse if: QML `TreeView` performance is unacceptable on >10MB SEPA files. Fallback is a `QQuickWidget` embedding `QTreeView` from Qt Widgets, or a full Widgets pivot. This decision is reversible at Phase 3 with no infrastructure churn — both stacks share the same build/CI/packaging plumbing.
 
 ### 3.5 XML library
 
 - **pugixml** (vcpkg `pugixml`).
 - Reasoning: header + small TU, very fast DOM traversal, simple API, no external dependencies. The viewer needs DOM-style random access (tree view, jump-to-line, XPath-ish queries) more than streaming. libxml2 is heavier and brings GLib-flavored ergonomics; rapidxml is lower-level and abandoned.
-- For XSD validation specifically (Phase 2+), pugixml does **not** validate. We will introduce **Xerces-C++** (vcpkg `xerces-c`) at that point. Init phase does not depend on either.
+- For XSD validation specifically (Phase 3+), pugixml does **not** validate. We will introduce **Xerces-C++** (vcpkg `xerces-c`) at that point. Init phase does not depend on either.
 
 ### 3.6 Test frameworks
 
@@ -210,7 +210,7 @@ sepa-xml-viewer/
 │   ├── app/
 │   │   ├── main.cpp                # Phase 0: opens an empty QQmlApplicationEngine window
 │   │   └── application.{h,cpp}
-│   ├── core/                       # Phase 1+: SEPA parsing — empty in Phase 0
+│   ├── core/                       # Phase 2+: SEPA parsing — empty in Phase 0
 │   │   └── CMakeLists.txt          # placeholder library target
 │   ├── ui/                         # QML + Qt resource files
 │   │   ├── qml/
@@ -285,7 +285,7 @@ Three configure presets — `ci-linux`, `ci-macos`, `ci-windows` — and their m
 ### 5.3 macOS architecture target
 
 - **arm64 only** for the init phase. The GitHub Actions `macos-14` runner is Apple Silicon; producing an arm64-only `.dmg` keeps CI simple and within the binary cache.
-- Universal binaries (`lipo` of x64 + arm64 builds) deferred to Phase 2 if user demand exists. Documented up front so this is a deliberate choice, not an oversight.
+- Universal binaries (`lipo` of x64 + arm64 builds) deferred to Phase 3 if user demand exists. Documented up front so this is a deliberate choice, not an oversight.
 - Reverse if: a stakeholder confirms x64 Mac users.
 
 ---
@@ -297,13 +297,13 @@ Three layers, all wired up in CI from day one. Each gets its own subdirectory un
 ### 6.1 Unit tests (`tests/unit/`)
 
 - Catch2 test executables.
-- Each module under `src/core` ships its own `test_<module>.cpp` (Phase 1+).
+- Each module under `src/core` ships its own `test_<module>.cpp` (Phase 2+).
 - Phase 0 deliverable: a single `test_smoke.cpp` proving the test harness builds and runs on all three platforms. Acceptance is non-zero exit on failure plus CTest integration via `catch_discover_tests`.
 
 ### 6.2 Integration tests (`tests/integration/`)
 
 - Drive the parser with on-disk fixture XML files in `tests/fixtures/`. Phase 0 ships exactly one trivial XML stub to exercise file I/O wiring.
-- Phase 1+: one fixture per supported message type (pain.001, pain.008, camt.053, …). Sourced from ISO 20022 catalogue samples or synthesized; never copy-pasted from real production data.
+- Phase 2+: one fixture per supported message type (pain.001, pain.008, camt.053, …). Sourced from ISO 20022 catalogue samples or synthesized; never copy-pasted from real production data.
 - Test framework: Catch2 (same as unit). Distinction is: integration tests touch the filesystem, unit tests do not.
 - Performance budget per test: 1 second. Larger end-to-end runs go under a separate `slow` label and are not gating.
 
@@ -312,12 +312,12 @@ Three layers, all wired up in CI from day one. Each gets its own subdirectory un
 - Qt Test framework (`QTEST_MAIN`).
 - Phase 0 deliverable: launch the application's `QQmlApplicationEngine`, wait for the main window's `Component.onCompleted`, take a screenshot, assert the window is visible and at least 400×300. Closes cleanly.
 - Headless-friendly: on Linux CI, runs under `xvfb-run`. macOS / Windows runners have a real session and run unwrapped.
-- Phase 1+: add a fixture-load smoke (open file dialog programmatically, load a sample XML, assert the tree pane has > 0 nodes).
+- Phase 2+: add a fixture-load smoke (open file dialog programmatically, load a sample XML, assert the tree pane has > 0 nodes).
 
 ### 6.4 What is NOT tested in Phase 0
 
 - Performance / memory (no realistic workload yet).
-- Fuzzing (Phase 2 candidate, with libFuzzer or AFL++).
+- Fuzzing (Phase 3 candidate, with libFuzzer or AFL++).
 - Snapshot / pixel-diff UI tests (overkill for a non-existent UI).
 
 ---
@@ -483,17 +483,18 @@ Total ballpark: **~7.5 engineer-days** for init phase, dominated by CI/packaging
 
 ## 13. Future Phases (placeholders, not commitments)
 
-- **Phase 1 — Core SEPA parser**: pugixml-backed model for pain.001/002/008, camt.053/054, SRTP message family. XSD validation deferred or layered with Xerces-C++. Read-only; no editing.
-- **Phase 2 — Viewer UI for non-technical users** (per the audience defined in §1 *Target audience*): a "summary" view that renders messages in plain language ("Sender", "Recipient", "Amount", "When") with the underlying ISO 20022 element names exposed via a toggle; raw XML pane with syntax highlighting; tree pane for power users; localized currency / date / number formatting; drag-and-drop file open; recent files; dark / light theming; the "flag unstructured addresses past 2026-11-15" rule; plain-language validation error messages translating XSD violations. Accessibility (screen-reader, keyboard navigation, font scaling) lands here, not later.
-- **Phase 3 — Power-user features and i18n**: multi-document tabs, **export to Excel `.xlsx`, CSV, JSON, and PDF** (see *Export formats* note below), validation report, schema-version detection, **internationalization via Qt Linguist — English, German, Dutch, French** (full plan and per-locale formatting rules in [`plan/04-localization.md`](04-localization.md); the data-vs-display split there is what keeps SEPA payment data interoperable across the EU regardless of which UI locale a user picks).
+- **Phase 1 — MVP viewer** (full plan: [`plan/01-mvp-viewer.md`](01-mvp-viewer.md)): one end-to-end vertical that opens a `pain.001.001.13` file and renders it in a basic tree + detail UI. Single current version, no XSD validation gate, no audience-facing UX polish. Ships as `v0.1.0`. Multi-version support, validation, summary views, accessibility, and exports are explicitly deferred to later phases below — the MVP exists to put a working viewer in front of users before architecting around hypotheticals.
+- **Phase 2 — Multi-version SEPA support** (full plan: [`plan/02-multi-version-support.md`](02-multi-version-support.md)): backwards compatibility across all published versions of every in-scope message family — `pain.001.001.03` through the current `.13`, `pain.008`, SRTP, `camt.05x`. Adapter pattern feeding the same canonical model the Phase 1 viewer already binds to. This is the "moat" that differentiates from enterprise SEPA viewers that only render the version they shipped.
+- **Phase 3 — Viewer UI for non-technical users** (per the audience defined in §1 *Target audience*): a "summary" view that renders messages in plain language ("Sender", "Recipient", "Amount", "When") with the underlying ISO 20022 element names exposed via a toggle; raw XML pane with syntax highlighting; tree pane for power users; localized currency / date / number formatting; drag-and-drop file open; recent files; dark / light theming; the "flag unstructured addresses past 2026-11-15" rule; plain-language validation error messages translating XSD violations. Accessibility (screen-reader, keyboard navigation, font scaling) lands here, not later.
+- **Phase 4 — Power-user features and i18n**: multi-document tabs, **export to Excel `.xlsx`, CSV, JSON, and PDF** (see *Export formats* note below), validation report, schema-version detection, **internationalization via Qt Linguist — English, German, Dutch, French** (full plan and per-locale formatting rules in [`plan/05-localization.md`](05-localization.md); the data-vs-display split there is what keeps SEPA payment data interoperable across the EU regardless of which UI locale a user picks).
 
   **Export formats — design notes** (CSV and Excel are not the same format and are not interchangeable for this audience):
-  - **Excel `.xlsx`** is the format the target audience (HR / payroll / accounting / compliance — see §1 *Target audience*) actually uses day-to-day. Open-on-double-click, locale-correct currency cells (`€1.234,56` / `$1,234.56`), real date cells (so sorting and filtering Just Work), multi-sheet output (Summary, Transactions, Validation Report), bold + frozen headers, auto-width columns. Library: **libxlsxwriter** (vcpkg `libxlsxwriter`, BSD-2-Clause). Write-only is exactly the API surface we need — we never read `.xlsx` files. May land in Phase 2 instead if user demand precedes the rest of Phase 3; the rest of the format set stays Phase 3.
+  - **Excel `.xlsx`** is the format the target audience (HR / payroll / accounting / compliance — see §1 *Target audience*) actually uses day-to-day. Open-on-double-click, locale-correct currency cells (`€1.234,56` / `$1,234.56`), real date cells (so sorting and filtering Just Work), multi-sheet output (Summary, Transactions, Validation Report), bold + frozen headers, auto-width columns. Library: **libxlsxwriter** (vcpkg `libxlsxwriter`, BSD-2-Clause). Write-only is exactly the API surface we need — we never read `.xlsx` files. May land in Phase 3 instead if user demand precedes the rest of Phase 4; the rest of the format set stays Phase 4.
   - **CSV** is the lowest common denominator for "feed this file into another tool" pipelines. Always emit UTF-8 with BOM; offer the user the separator choice (`,` vs `;`) since German / French / Dutch locales default to `;`. CSV date and currency columns get re-coerced badly when round-tripped through Excel, so CSV is explicitly *not* the "open this in Excel" path — `.xlsx` is.
-  - **JSON** is for power users and scripts. One JSON document per loaded file, schema-stable across releases, mirrors the canonical model from [`plan/01-multi-version-support.md`](01-multi-version-support.md) §4 so machine-consumers can rely on field shape regardless of source XML version.
+  - **JSON** is for power users and scripts. One JSON document per loaded file, schema-stable across releases, mirrors the canonical model from [`plan/02-multi-version-support.md`](02-multi-version-support.md) §4 so machine-consumers can rely on field shape regardless of source XML version.
   - **PDF** is for archive-ready hard copy — the rendered summary view as a flat document, suitable for emailing or printing for an audit file. Qt's `QPrinter` + `QTextDocument` handle this without an additional dependency.
-- **Phase 4 — Distribution polish**: code signing, Apple notarization, Linux distro repos / package-manager presence (so updates flow through the OS-level package manager rather than an in-app updater). **Auto-update is explicitly NOT in scope** — it would violate the offline-only guarantee from §1 Goal #9. Users update by downloading a new installer or by their package manager.
-- **Phase 5 — Optional**: CLI `sepa-xml validate`/`sepa-xml dump` companion binary (reuses `src/core` library), WASM build for an in-browser viewer.
+- **Phase 5 — Distribution polish**: code signing, Apple notarization, Linux distro repos / package-manager presence (so updates flow through the OS-level package manager rather than an in-app updater). **Auto-update is explicitly NOT in scope** — it would violate the offline-only guarantee from §1 Goal #9. Users update by downloading a new installer or by their package manager.
+- **Phase 6 — Optional**: CLI `sepa-xml validate`/`sepa-xml dump` companion binary (reuses `src/core` library), WASM build for an in-browser viewer.
 
 These are not commitments; they exist so reviewers can see this init phase isn't designed in isolation.
 
@@ -501,10 +502,10 @@ These are not commitments; they exist so reviewers can see this init phase isn't
 
 ## 14. Open Questions for the Maintainer
 
-These do not block init phase but should be answered before Phase 1 starts. Capture answers in a follow-up `plan/01-…` document.
+These do not block init phase but should be answered before Phase 1 starts. Capture answers in [`plan/01-mvp-viewer.md`](01-mvp-viewer.md).
 
 1. **License**: the LICENSE file in the initial commit needs confirmation — is it intentional, and should the application's license headers reference it?
 2. **App identifier**: macOS bundle ID and Windows AppUserModelID need a real value. Suggested: `org.yornik.sepa-xml-viewer` unless a better domain is owned. Used in `Info.plist`, NSIS install dir, `.desktop` `StartupWMClass`.
-3. **Icon**: a placeholder geometric icon ships in init phase; a real icon is a Phase 2 task.
+3. **Icon**: a placeholder geometric icon ships in init phase; a real icon is a Phase 3 task.
 4. **Telemetry**: never. Confirmed by absence — calling it out explicitly so it doesn't sneak in.
-5. **Update channel**: GitHub Releases page only in init phase. Auto-update is Phase 4.
+5. **Update channel**: GitHub Releases page only in init phase. Auto-update is Phase 5.

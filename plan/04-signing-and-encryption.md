@@ -1,4 +1,4 @@
-# Signature Verification and Decryption — Phase 3 Capability Plan
+# Signature Verification and Decryption — Phase 4 Capability Plan
 
 Status: draft, 2026-05-08
 Owner: @yornik
@@ -19,7 +19,7 @@ Concretely, three operations land in this phase:
 ### Out of scope
 
 - **Signing.** This is a viewer. We never sign anything. No private signing keys are touched.
-- **Encrypting.** Same reasoning. The viewer does not produce encrypted output; export to clear `.xlsx` / CSV / JSON / PDF (per [`plan/00-init-phase.md`](00-init-phase.md) §13 Phase 3) is sufficient when a user wants to share decrypted contents.
+- **Encrypting.** Same reasoning. The viewer does not produce encrypted output; export to clear `.xlsx` / CSV / JSON / PDF (per [`plan/00-init-phase.md`](00-init-phase.md) §13 Phase 4) is sufficient when a user wants to share decrypted contents.
 - **Key management beyond per-file load.** No key-store integration, no HSM support, no per-user keychain integration. The user supplies a private key file (PEM or PKCS#12) per decryption operation, which is loaded into memory, used, and zeroed on close.
 - **OCSP / CRL fetch.** Certificate-revocation checking that requires network calls. The viewer is offline by design (see [`plan/00-init-phase.md`](00-init-phase.md) §1 Goal #9) — revocation status is not consulted at runtime. A "this certificate's expiry / not-before window" check is the strongest temporal validation we do.
 - **Certificate transparency, pinning, or any other network-dependent assurance mechanism.**
@@ -50,10 +50,10 @@ We do not invent crypto, even less than we invent SEPA message formats. The publ
 | XML Encryption (xmlenc)               | https://www.w3.org/TR/xmlenc-core1/                      | W3C-style encrypted XML                           |
 | Canonical XML 1.1                     | https://www.w3.org/TR/xml-c14n11/                        | Required for signature verification               |
 | Exclusive XML Canonicalization        | https://www.w3.org/TR/xml-exc-c14n/                      | Common for SEPA / banking signatures              |
-| EBICS specification                   | https://www.ebics.org/en/home (current production version pinned at Phase 3 entry) | EBICS envelope decryption framing |
+| EBICS specification                   | https://www.ebics.org/en/home (current production version pinned at Phase 4 entry) | EBICS envelope decryption framing |
 | ISO 20022 BAH (Business Application Header) | https://www.iso20022.org                          | Often carries the signature in inter-PSP messages |
 
-Concrete EBICS version and BAH version pinning is a Phase 3 entry decision; this document does not pre-commit to one.
+Concrete EBICS version and BAH version pinning is a Phase 4 entry decision; this document does not pre-commit to one.
 
 ---
 
@@ -166,7 +166,7 @@ This keeps the existing parser pipeline (plan/01 adapters → canonical model) i
 
 Two sources, both read-only at runtime:
 
-1. **Bundled trust anchors.** A small set of CA certificates ships with the installer. Sourced from the public bank-CA distribution channels (e.g. Bundesverband deutscher Banken for German EBICS, equivalent for FR / NL / ES). Stored under the installer's read-only resource path. License check before bundling — same pattern as the SEPA XSDs in [`plan/01-multi-version-support.md`](01-multi-version-support.md) §5.
+1. **Bundled trust anchors.** A small set of CA certificates ships with the installer. Sourced from the public bank-CA distribution channels (e.g. Bundesverband deutscher Banken for German EBICS, equivalent for FR / NL / ES). Stored under the installer's read-only resource path. License check before bundling — same pattern as the SEPA XSDs in [`plan/02-multi-version-support.md`](02-multi-version-support.md) §5.
 2. **User-imported additions.** The user can drag a PEM-format CA certificate into the viewer's "Trust Anchors" dialog. The certificate is copied (not symlinked) into the user's profile dir (`~/.config/sepa-xml-viewer/trust/` or platform equivalent) and used on subsequent verifications. The dialog shows fingerprint, issuer, subject, expiry; the user explicitly consents to trust it.
 
 If verification succeeds against the union of (1) and (2), the result is "valid." If neither set contains the signing certificate's chain, the result is "valid signature, but the signer is not in your trust list" — surfaced clearly so the user understands the difference between a forged signature and an unknown-but-correctly-signed message.
@@ -204,7 +204,7 @@ After decryption (banner above the summary, neutral-tinted):
 
 The cleartext is rendered through the normal SEPA viewer pipeline. The user sees the same summary they would see for an unencrypted file — they don't need to learn a different UI.
 
-**Visual styling** for the four banner states (valid / untrusted / broken / decrypted) uses Qt Quick's built-in theming colour roles plus an inline icon (Material Design or equivalent — final asset choice is a Phase 3 UI task). The banner copy is also exposed as plain-text accessible name so screen readers announce the state correctly without depending on the icon glyph.
+**Visual styling** for the four banner states (valid / untrusted / broken / decrypted) uses Qt Quick's built-in theming colour roles plus an inline icon (Material Design or equivalent — final asset choice is a Phase 4 UI task). The banner copy is also exposed as plain-text accessible name so screen readers announce the state correctly without depending on the icon glyph.
 
 ---
 
@@ -257,9 +257,9 @@ No real bank keys, no real customer keys, no real EBICS sessions. The placeholde
 
 ## 11. Phasing
 
-- **Phase 3** — W3C `xmldsig` verification + W3C `xmlenc` decryption. Trust-store UI. The "signed/encrypted file" UX. This is the bulk of the work and covers the corporate-to-bank cases that don't use EBICS framing.
-- **Phase 3.5** — EBICS envelope decryption, layered on top of the Phase 3 module. Adds the EBICS-specific detection, framing parser, and bespoke decryption pipeline. Reuses the Phase 3 trust store and key-loading UI; adds nothing else to the user-visible interface.
-- **Phase 4 onward** — no further crypto features planned. If real-world demand emerges for, e.g., signing an existing file before re-submission to a bank, that is a substantial scope expansion and gets its own plan document.
+- **Phase 4** — W3C `xmldsig` verification + W3C `xmlenc` decryption. Trust-store UI. The "signed/encrypted file" UX. This is the bulk of the work and covers the corporate-to-bank cases that don't use EBICS framing.
+- **Phase 4.5** — EBICS envelope decryption, layered on top of the Phase 4 module. Adds the EBICS-specific detection, framing parser, and bespoke decryption pipeline. Reuses the Phase 4 trust store and key-loading UI; adds nothing else to the user-visible interface.
+- **Phase 5 onward** — no further crypto features planned. If real-world demand emerges for, e.g., signing an existing file before re-submission to a bank, that is a substantial scope expansion and gets its own plan document.
 
 ---
 

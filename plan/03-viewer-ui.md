@@ -1,8 +1,8 @@
-# Phase 2 — Viewer UI for Non-Technical Users
+# Phase 3 — Viewer UI for Non-Technical Users
 
 Status: draft, 2026-05-08
 Owner: @yornik
-Scope: design and behavior of the GUI as the target audience experiences it (HR / payroll / accounting / compliance — see [`plan/00-init-phase.md`](00-init-phase.md) §1 *Target audience*). Phase 1 produces the canonical model; this phase makes it usable for someone who has never read the ISO 20022 spec.
+Scope: design and behavior of the GUI as the target audience experiences it (HR / payroll / accounting / compliance — see [`plan/00-init-phase.md`](00-init-phase.md) §1 *Target audience*). Phases 1–2 produce the parsed message model; this phase makes it usable for someone who has never read the ISO 20022 spec.
 
 This document covers UX commitments. Pixel-level layout, exact strings, and Material color tokens are implementation-time decisions made against the principles below.
 
@@ -99,7 +99,7 @@ Each message type gets a layout designed for its primary content. Generic "list 
 - **SRTP `pain.013` family**: request-focused. "Request from [Payee] for [amount], expected by [date]. Status: [pending / accepted / rejected / ...]"
 - **`pain.002` (status report)**: status-grouped. "Of [N] transactions submitted, [accepted / rejected / pending] [counts]." Per-transaction rows below if user expands.
 
-The per-type layout dispatches off the canonical model's `family` field (see [`plan/01-multi-version-support.md`](01-multi-version-support.md) §4). A new message family adds a new QML component and registers it; the rest of the UI does not change.
+The per-type layout dispatches off the canonical model's `family` field (see [`plan/02-multi-version-support.md`](02-multi-version-support.md) §4). A new message family adds a new QML component and registers it; the rest of the UI does not change.
 
 ---
 
@@ -137,7 +137,7 @@ For users who want to walk the XML structure as a hierarchy. Behind the Tree tab
 - **Reload**: F5 / Ctrl+R re-reads the file from disk. Useful when another tool is regenerating the file while the viewer is open.
 - **Close**: Ctrl+W closes the current file and returns to the empty drop screen. Quitting the app (Cmd+Q / Alt+F4) is separate.
 
-Phase 2 is **single-document** — one window, one file at a time. Multi-document tabs are Phase 3 (see [`plan/00-init-phase.md`](00-init-phase.md) §13).
+Phase 3 is **single-document** — one window, one file at a time. Multi-document tabs are Phase 4 (see [`plan/00-init-phase.md`](00-init-phase.md) §13).
 
 ---
 
@@ -151,13 +151,13 @@ Single search box (footer, footer-right, focus via Ctrl+F or by typing when no o
 - Case-insensitive default; toggle for case-sensitive.
 - Enter navigates to the next match; Shift+Enter to the previous.
 
-Search across multiple files is out of scope for Phase 2 — it requires multi-document support. Revisit in Phase 3.
+Search across multiple files is out of scope for Phase 3 — it requires multi-document support. Revisit in Phase 4.
 
 ---
 
 ## 8. Validation feedback
 
-The Phase 1 parser (per [`plan/01-multi-version-support.md`](01-multi-version-support.md)) emits validation results as part of the canonical model. Phase 2 surfaces them as:
+The Phase 2 parser (per [`plan/02-multi-version-support.md`](02-multi-version-support.md)) emits validation results as part of the canonical model. Phase 3 surfaces them as:
 
 ### 8.1 Top-bar banner
 
@@ -189,7 +189,7 @@ Validation errors live in a translated string table keyed by error code:
 ErrorCode -> { default-language: string, ... per-locale strings ... }
 ```
 
-Phase 2 ships English-only with the table populated. Phase 3 adds translations via Qt Linguist (see §12). Untranslated codes fall back to the technical message + a "we don't have a friendly translation for this yet — see Show details" line.
+Phase 3 ships English-only with the table populated. Phase 4 adds translations via Qt Linguist (see §12). Untranslated codes fall back to the technical message + a "we don't have a friendly translation for this yet — see Show details" line.
 
 ---
 
@@ -212,7 +212,7 @@ Custom Material color overrides limited to: primary (the accent color used on th
 
 ## 10. Accessibility
 
-Per [`plan/00-init-phase.md`](00-init-phase.md) §1 *Target audience*, accessibility is a **Phase 2 deliverable, not a later one**. Audiences in HR / payroll / managed-device environments include users who depend on assistive technology, and they should not wait for a hypothetical v2.0.
+Per [`plan/00-init-phase.md`](00-init-phase.md) §1 *Target audience*, accessibility is a **Phase 3 deliverable, not a later one**. Audiences in HR / payroll / managed-device environments include users who depend on assistive technology, and they should not wait for a hypothetical v2.0.
 
 Commitments:
 
@@ -237,7 +237,7 @@ Cross-launch persisted state (in user profile dir):
 - Font size / zoom level.
 - Technical-mode toggle preference.
 - Window size and position.
-- Trust store contents (deferred to Phase 3 — see [`plan/03-signing-and-encryption.md`](03-signing-and-encryption.md)).
+- Trust store contents (deferred to Phase 4 — see [`plan/04-signing-and-encryption.md`](04-signing-and-encryption.md)).
 
 Stored as a single JSON file under the platform-appropriate profile dir:
 
@@ -249,9 +249,9 @@ Schema versioned. Forward-compat: unknown keys ignored; missing keys use default
 
 ---
 
-## 12. Localization-readiness (i18n in Phase 3)
+## 12. Localization-readiness (i18n in Phase 4)
 
-Phase 2 ships **English-only** in the user-visible interface, but **i18n-ready**.
+Phase 3 ships **English-only** in the user-visible interface, but **i18n-ready**.
 
 What that means in practice:
 
@@ -260,9 +260,9 @@ What that means in practice:
 - The plain-language error table (see §8.4) is populated for English with a structure that maps cleanly to one Qt Linguist `.ts` file per locale.
 - `lupdate` runs as part of the build; the resulting `.ts` files live under `src/i18n/`.
 
-The cheap part is doing it correctly from the first commit. The expensive part is retrofitting it. Phase 3 then ships actual translations.
+The cheap part is doing it correctly from the first commit. The expensive part is retrofitting it. Phase 4 then ships actual translations.
 
-**Committed Phase 3 languages:** English, German, Dutch, French. The full plan — language reasoning, what is and isn't translated, per-locale formatting tables, banking glossary, the data-vs-display split that keeps SEPA data interoperable across the EU regardless of UI locale, translation workflow, testing — lives in [`plan/04-localization.md`](04-localization.md). Phase 2 implementation must satisfy that plan's Phase 2 readiness criteria (`plan/04` §8): every string in `qsTr()`, every formatting via `Qt.locale()`, source-language `.ts` populated, `lupdate` / `lrelease` integrated into the build.
+**Committed Phase 4 languages:** English, German, Dutch, French. The full plan — language reasoning, what is and isn't translated, per-locale formatting tables, banking glossary, the data-vs-display split that keeps SEPA data interoperable across the EU regardless of UI locale, translation workflow, testing — lives in [`plan/05-localization.md`](05-localization.md). Phase 3 implementation must satisfy that plan's Phase 3 readiness criteria (`plan/05` §8): every string in `qsTr()`, every formatting via `Qt.locale()`, source-language `.ts` populated, `lupdate` / `lrelease` integrated into the build.
 
 ---
 
@@ -278,24 +278,24 @@ No usage tracking. No "send anonymous statistics." No upsells. The onboarding is
 
 ---
 
-## 14. Explicitly out of scope for Phase 2
+## 14. Explicitly out of scope for Phase 3
 
 These are real features but they belong elsewhere:
 
-**Move to Phase 3:**
+**Move to Phase 4:**
 - Multi-document tabs.
-- Export to `.xlsx` / CSV / JSON / PDF (with the caveat from [`plan/00-init-phase.md`](00-init-phase.md) §13 that `.xlsx` may bump to Phase 2 if user demand precedes the rest of Phase 3 — recheck before Phase 2 ships).
+- Export to `.xlsx` / CSV / JSON / PDF (with the caveat from [`plan/00-init-phase.md`](00-init-phase.md) §13 that `.xlsx` may bump to Phase 3 if user demand precedes the rest of Phase 4 — recheck before Phase 3 ships).
 - Validation report export (related to export — same phase).
-- Internationalization with actual translations (i18n-ready in Phase 2 → translations land in Phase 3).
+- Internationalization with actual translations (i18n-ready in Phase 3 → translations land in Phase 4).
 - Multi-document search.
 
-**Move to Phase 4 onward:**
+**Move to Phase 5 onward:**
 - Compare two files side-by-side.
 - Plug-in / extension points.
 
 **Never:**
 - Telemetry of any kind.
-- Auto-update — see [`plan/00-init-phase.md`](00-init-phase.md) §13 Phase 4. Updates flow via re-download or OS package manager.
+- Auto-update — see [`plan/00-init-phase.md`](00-init-phase.md) §13 Phase 5. Updates flow via re-download or OS package manager.
 - "Cloud sync" of recent files / settings — would require networking, violates Goal #9.
 - Editing payment data. The viewer is read-only.
 
@@ -319,6 +319,6 @@ The audience can:
 
 1. **Material vs Universal vs Fusion default**: Material reads as "modern" but some Windows users may prefer Universal for OS consistency. Default to Material with a Settings switch; reassess after first user feedback.
 2. **Drop-screen sample-file button**: should the sample file open in a "demo mode" with a banner noting it's example data? Probably yes — prevents users from being confused about the placeholder values being real.
-3. **Right-click context menu**: copy field, copy IBAN-only (without spaces), copy as JSON-snippet, search-this-value? Probably the first three for Phase 2; design at implementation time.
+3. **Right-click context menu**: copy field, copy IBAN-only (without spaces), copy as JSON-snippet, search-this-value? Probably the first three for Phase 3; design at implementation time.
 4. **Tree view's place in the tab strip**: tab order Raw / Tree, or Tree / Raw? Raw first reads as "what's actually in the file"; Tree first reads as "nicer to navigate." Lean Raw-first; revisit after first user feedback.
 5. **Window-restore behavior**: restore exact previous window size and position, or only size? Position-restore is a UX win on multi-monitor setups but trips up users whose monitor configuration changed. Lean: restore size always, restore position only if the saved screen geometry still exists.

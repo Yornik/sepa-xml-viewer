@@ -15,23 +15,56 @@ HR professionals, payroll administrators, accountants, and other office users wh
 
 ## What it does, and what it does not do
 
-- It opens a SEPA XML file from disk and renders it as a navigable, plain-language summary.
-- It shows the raw XML alongside the human-friendly view.
-- It validates against the published ISO 20022 / EPC schemas and translates validation errors into plain language.
 - It is **read-only**. It does not initiate, sign, edit, or alter payments.
-- It runs **fully offline**. It does not make network requests, send telemetry, fetch updates, or download schemas at runtime.
+- It runs **fully offline**. It does not make network requests, send telemetry, fetch updates, or download schemas at runtime. Enforced at build time — Qt is configured without its networking module and no networking dependency is permitted in the dependency manifest.
 
-The "fully offline" guarantee is enforced at build time — Qt is configured without its networking module and no networking dependency is permitted in the dependency manifest.
+What it does *today* depends on which phase has shipped:
 
-## Status — init phase (Phase 0)
+| Version | Status | What works |
+| ------- | ------ | ---------- |
+| `v0.0.1` (current) | infrastructure proof | A window opens with a placeholder label. Build, CI, packaging, and the release pipeline are all wired up. SEPA files are not yet parsed. |
+| `v0.1.0` (next, Phase 1 MVP) | in progress | Drag a `pain.001.001.13` file in → see the structure in a tree + detail view + raw XML tab. Single version, no plain-language relabeling, no XSD validation. Plan: [`plan/01-mvp-viewer.md`](plan/01-mvp-viewer.md). |
+| Later | planned | Multi-version SEPA support, plain-language summary view, validation, exports, localization, signature verification. See [`plan/00-init-phase.md`](plan/00-init-phase.md) §13. |
 
-This repository is in the development-infrastructure setup phase. There is no buildable application yet. The full plan for what Phase 0 delivers is at **[`plan/00-init-phase.md`](plan/00-init-phase.md)** — read it before contributing.
+## Install
 
-Definition of done for init phase: `git tag v0.0.1 && git push --tags` produces installers for Linux (`.deb`, `.rpm`, AppImage), macOS (`.dmg`), and Windows (NSIS `.exe` + `.zip`) on a draft GitHub Release, and `main` is green across the CI matrix.
+Native installers for every platform live on the [Releases page](https://github.com/Yornik/sepa-xml-viewer/releases). Pick the right artefact for your OS, then follow the platform-specific notes — none of the current installers are code-signed, so each OS shows a security warning the first time you launch the binary.
+
+### Linux
+
+- `sepa-xml-viewer-<version>-Linux-x86_64.deb` — Debian / Ubuntu. Install with `sudo dpkg -i sepa-xml-viewer-*.deb`. Launch from your application menu or run `sepa-xml-viewer` from a terminal.
+- `sepa-xml-viewer-<version>-Linux-x86_64.rpm` — Fedora / RHEL / openSUSE. Install with `sudo rpm -i sepa-xml-viewer-*.rpm` (or `sudo dnf install ./sepa-xml-viewer-*.rpm`).
+- `sepa-xml-viewer-<version>-Linux-x86_64.AppImage` — distribution-independent portable binary. `chmod +x sepa-xml-viewer-*.AppImage` then double-click or run it. Nothing is installed system-wide; delete the file to uninstall.
+
+No code signing is performed on Linux. If your distribution warns about an untrusted package, that warning is correct: you are installing a binary I built and signed with my key, which your system doesn't trust by default. The source is in this repository; you can also build from source ([§ Build from source](#build-from-source) below) if you'd prefer.
+
+### macOS
+
+- `sepa-xml-viewer-<version>-Darwin-arm64.dmg` — Apple Silicon Macs (M1/M2/M3/M4).
+
+Double-click the `.dmg`, then drag `sepa-xml-viewer.app` into `/Applications`. The first launch will show **"sepa-xml-viewer can't be opened because Apple cannot check it for malicious software"** — this is Apple's Gatekeeper telling you the app isn't notarized. To bypass:
+
+- **Right-click** (or Control-click) the app in `/Applications` → **Open** → click **Open** in the dialog. macOS remembers this choice and won't ask again.
+- Or run once from a terminal: `xattr -dr com.apple.quarantine /Applications/sepa-xml-viewer.app`
+
+Apple notarization costs $99/year and is on the Phase 5 roadmap (see [`plan/00-init-phase.md`](plan/00-init-phase.md) §13). Until then, the Gatekeeper warning is expected.
+
+### Windows
+
+- `sepa-xml-viewer-<version>-Windows-AMD64.exe` — NSIS installer. Installs to `C:\Program Files\SEPA XML Viewer\` and adds a Start menu shortcut.
+- `sepa-xml-viewer-<version>-Windows-AMD64.zip` — portable ZIP. Extract anywhere; run `bin\sepa-xml-viewer.exe`.
+
+Both are unsigned, so Windows SmartScreen will show **"Windows protected your PC — Microsoft Defender SmartScreen prevented an unrecognized app from starting"** on first launch. To bypass: click **More info** → **Run anyway**. Code signing (EV certificate, ~$250–$500/year) is on the Phase 5 roadmap.
+
+If you prefer not to run unsigned binaries, build from source instead.
+
+## Status
+
+Phase 0 (development infrastructure) is complete: the build, CI, packaging, and release pipeline all work end-to-end. `v0.0.1` was the validation tag. Phase 1 (the MVP viewer that actually opens SEPA files) is in progress — see [`plan/01-mvp-viewer.md`](plan/01-mvp-viewer.md).
 
 ## Platforms
 
-Linux, macOS, Windows — all from one C++20 / Qt 6 codebase.
+Linux, macOS (Apple Silicon), Windows — all from one C++20 / Qt 6 codebase.
 
 ## Tech stack
 
@@ -48,15 +81,24 @@ Linux, macOS, Windows — all from one C++20 / Qt 6 codebase.
 
 Reasoning for each choice is in [`plan/00-init-phase.md`](plan/00-init-phase.md) §3.
 
-## Building (after PR #2 lands)
+## Build from source
+
+Requirements: a C++20 compiler (GCC 12+, Clang 15+, MSVC 2022+), CMake 3.25+, Ninja, and either a vcpkg checkout (set `VCPKG_ROOT`) or a system Qt 6.5+ install. The vcpkg path is what CI uses and is the documented happy path.
 
 ```sh
+# One-time: clone vcpkg and export the path
+git clone https://github.com/microsoft/vcpkg ~/vcpkg
+export VCPKG_ROOT=~/vcpkg
+
+# Build + run tests
 cmake --preset dev-debug
 cmake --build --preset dev-debug
 ctest --preset dev-debug --output-on-failure
 ```
 
-The build system itself arrives in PR #2 of the [§12 sequencing breakdown](plan/00-init-phase.md). Until then, this repository is documentation only.
+The first configure is slow because vcpkg builds Qt and dependencies from source (warm-cache subsequent builds take minutes). On Linux you'll need Qt's build prerequisites — see the `Install Qt build prerequisites (Linux)` step in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) for the canonical apt-get list. macOS needs Xcode command-line tools plus autotools (`brew install autoconf autoconf-archive automake libtool`). Windows needs Visual Studio Build Tools 2022.
+
+CI uses `ci-linux`, `ci-macos`, `ci-windows` presets instead of `dev-debug` — same toolchain, Release configuration, warnings-as-errors. Full preset list in [`CMakePresets.json`](CMakePresets.json).
 
 ## SEPA standards reference
 
