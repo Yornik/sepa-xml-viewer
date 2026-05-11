@@ -26,6 +26,15 @@ set(_sepa_msvc_warnings
     /w14905  # wide string literal cast to LPSTR
     /w14906  # string literal cast to LPWSTR
     /w14928  # illegal copy-initialization; more than one user-defined conversion
+    # C4702 ("unreachable code") fires inside Qt's own headers (qmetatype.h,
+    # qjsengine.h, qvariant.h) when MSVC instantiates Qt templates from the
+    # QML-cache .cpp files qt_add_qml_module generates. /external:W0 doesn't
+    # silence it because the warning is emitted at template-instantiation
+    # time in our TU, not while compiling Qt's headers. The warning itself
+    # is low-signal in template-heavy C++ (many template branches are
+    # legitimately dead after optimization), and we still have GCC/Clang
+    # equivalents catching real cases on the other matrix legs.
+    /wd4702
 )
 
 set(_sepa_clang_warnings
