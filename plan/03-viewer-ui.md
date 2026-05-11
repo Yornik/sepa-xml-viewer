@@ -125,6 +125,15 @@ For users who want to walk the XML structure as a hierarchy. Behind the Tree tab
 - Click highlights the corresponding raw XML position and the corresponding summary field.
 - Type-ahead: typing on the keyboard while the tree has focus jumps to the next element matching.
 
+### 5.1 Tree-row interactions to fix in this phase
+
+These ride along with the Tree-view rewrite (this phase replaces the Phase 1 MVP's bare `TreeView` + `TreeViewDelegate` with the canonical-model-bridged variant above). Captured here so the rewrite isn't shipped without them:
+
+- **Single click on the disclosure arrow expands / collapses the row.** Phase 1's MVP delegate only expands on click of the arrow's exact pixel area (Qt's default hit-target for the indicator), which feels broken on a desktop GUI. Whole-arrow-area click should toggle expansion.
+- **Single click anywhere on a parent row's label expands / collapses it.** Matches every native-OS tree widget (Explorer, Finder, Nautilus). The label area is much larger than the arrow and is the natural click target.
+- **Double-click on any row toggles its expansion**, even if the row is currently selected. Avoids the trap where the user clicks, sees the row select, doesn't realise they have to click the small arrow specifically.
+- **Right-arrow key on a collapsed selected row expands it; left-arrow on an expanded one collapses it.** Keyboard parity with native trees.
+
 ---
 
 ## 6. File operations
@@ -207,6 +216,19 @@ Settings let the user switch to **Universal style** (Windows-y) or **Fusion** (m
 **Dark mode follows OS preference by default.** Override available in Settings. Material's dark palette is the active palette in dark mode — no separate skin to maintain.
 
 Custom Material color overrides limited to: primary (the accent color used on the validity banner and toggles) and the three banner-tint colors. Everything else uses Material defaults.
+
+### 9.1 Application icon
+
+This phase replaces the **placeholder** application icon shipped through Phase 1 with a real one. Today's state:
+
+- Linux gets a placeholder SVG via `packaging/linux/sepa-xml-viewer.svg`. Visible in the app menu and AppImage launcher; serviceable but obviously generic.
+- **macOS and Windows have nothing** — `packaging/macos/` and `packaging/windows/` are both just `README.md`. The `.dmg` / NSIS installer / window-title-bar use Qt's default generic Qt-app icon, which reads as "unfinished software" to users.
+
+What Phase 3 delivers:
+- `packaging/macos/sepa-xml-viewer.icns` (multi-resolution Apple icon set, generated from a 1024×1024 master). Wired into `cmake/Packaging.cmake` via `MACOSX_BUNDLE_ICON_FILE` and `set_source_files_properties(... HEADER_FILE_ONLY) → install(... Resources/)`.
+- `packaging/windows/sepa-xml-viewer.ico` (multi-resolution Windows icon, including a 256×256 RGBA frame). Wired in via a `.rc` resource file linked into the executable, plus `CPACK_NSIS_MUI_ICON` for the installer wizard.
+- New `packaging/linux/sepa-xml-viewer.svg` replacing the geometric placeholder with the real artwork.
+- Master SVG checked in at a single source-of-truth path (e.g. `packaging/icon-master.svg`) with a `tools/generate-icons.sh` that produces the three platform-specific files. Documented in the packaging READMEs.
 
 ---
 
