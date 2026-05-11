@@ -26,8 +26,7 @@ What it does *today* depends on which phase has shipped:
 
 | Version | Status | What works |
 | ------- | ------ | ---------- |
-| `v0.0.1` | infrastructure proof | A window opens with a placeholder label. Build, CI, packaging, and the release pipeline are all wired up. SEPA files are not yet parsed. |
-| `v0.1.0` (current, Phase 1 MVP) | shipped | Drag a `pain.001.001.13` file in → see the structure in a tree + detail view + raw XML tab. Single version, no plain-language relabeling, no XSD validation. Plan: [`plan/01-mvp-viewer.md`](plan/01-mvp-viewer.md). |
+| `v0.1.0` (current, Phase 1 MVP) | shipped, public pre-release | Drag a `pain.001.001.13` file in → see the structure in a tree + detail view + raw XML tab. Single version, no plain-language relabeling, no XSD validation. Plan: [`plan/01-mvp-viewer.md`](plan/01-mvp-viewer.md). |
 | Later | planned | Multi-version SEPA support, plain-language summary view, validation, exports, localization, signature verification. See [`plan/00-init-phase.md`](plan/00-init-phase.md) §13. |
 
 <details>
