@@ -90,9 +90,13 @@ elseif(UNIX)
     set(CPACK_RPM_PACKAGE_URL "${CPACK_PACKAGE_HOMEPAGE_URL}")
     set(CPACK_RPM_PACKAGE_AUTOREQ ON)
 
-    # Linux .desktop file lands at /usr/share/applications/.
+    # Linux .desktop file lands at /usr/share/applications/. The icon at
+    # /usr/share/icons/hicolor/scalable/apps/ is the standard XDG location
+    # linuxdeploy and desktop environments scan for application icons.
     install(FILES "${CMAKE_SOURCE_DIR}/packaging/linux/sepa-xml-viewer.desktop"
         DESTINATION share/applications)
+    install(FILES "${CMAKE_SOURCE_DIR}/packaging/linux/sepa-xml-viewer.svg"
+        DESTINATION share/icons/hicolor/scalable/apps)
 endif()
 
 include(CPack)

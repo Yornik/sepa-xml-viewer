@@ -153,10 +153,16 @@ jobs:
           # → bare linuxdeploy is enough; ldd picks up the non-Qt deps
           # (libxcb-cursor, libfontconfig, etc.) and deploys them.
 
+          # --icon-file is passed even though the SVG is also installed at
+          # AppDir/share/icons/hicolor/scalable/apps/ — linuxdeploy's XDG
+          # discovery has edge cases on the runner's filesystem (the symlink
+          # step it does into AppDir root looks for an "icon executable" in
+          # standard system paths first); an explicit flag short-circuits it.
           ./linuxdeploy \
             --appdir AppDir \
             --executable AppDir/bin/sepa-xml-viewer \
             --desktop-file AppDir/share/applications/sepa-xml-viewer.desktop \
+            --icon-file "${{ github.workspace }}/packaging/linux/sepa-xml-viewer.svg" \
             --output appimage
 
           # Move into the same location CPack writes to so the upload step
