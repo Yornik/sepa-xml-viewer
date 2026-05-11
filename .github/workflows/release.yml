@@ -180,8 +180,17 @@ jobs:
           # going through the .deb installer dance — install rules are the
           # same content.
           ./bin/sepa-xml-viewer --version
-          # Test the AppImage extracted-and-run.
-          APPIMAGE_EXTRACT_AND_RUN=1 ./sepa-xml-viewer-*.AppImage --version
+          # Test the AppImage extracted-and-run. linuxdeploy names the file
+          # based on the .desktop Name= entry, not CPack's naming convention,
+          # so use `find` instead of a glob that assumes one or the other.
+          APPIMAGE=$(find . -maxdepth 1 -name '*.AppImage' -type f | head -1)
+          if [ -z "$APPIMAGE" ]; then
+            echo "ERROR: no .AppImage file in $(pwd)" >&2
+            ls -la . >&2
+            exit 1
+          fi
+          echo "Smoke-testing: $APPIMAGE"
+          APPIMAGE_EXTRACT_AND_RUN=1 "$APPIMAGE" --version
 
       - name: Smoke-test artefact (macOS)
         if: runner.os == 'macOS'
@@ -211,9 +220,11 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           mkdir -p dist
-          cp build/${{ matrix.preset }}/sepa-xml-viewer-*.deb dist/
-          cp build/${{ matrix.preset }}/sepa-xml-viewer-*.rpm dist/
-          cp build/${{ matrix.preset }}/sepa-xml-viewer-*.AppImage dist/
+          cp build/${{ matrix.preset }}/*.deb dist/
+          cp build/${{ matrix.preset }}/*.rpm dist/
+          # AppImage filename varies (linuxdeploy uses .desktop Name=, CPack
+          # uses its own convention); a generic glob catches whichever style.
+          cp build/${{ matrix.preset }}/*.AppImage dist/
 
       - name: Collect artefacts (macOS)
         if: runner.os == 'macOS'
