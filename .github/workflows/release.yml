@@ -255,6 +255,35 @@ jobs:
           Start-Process -Wait $exe.FullName -ArgumentList "/S","/D=C:\sepa-installed"
           & "C:\sepa-installed\bin\sepa-xml-viewer.exe" --version
 
+          # Strong GUI smoke test: launch the binary and verify the QML event
+          # loop actually stays up. --version above only proves the loader
+          # finds the DLLs — it doesn't exercise QML loading at all, which is
+          # how the missing-QML-import-path bug shipped in v0.0.1.
+          #
+          # QT_FORCE_STDERR_LOGGING=1 makes Qt write diagnostics to stderr
+          # instead of OutputDebugString (its default on Windows GUI apps),
+          # so PowerShell's -RedirectStandardError actually captures them.
+          $env:QT_FORCE_STDERR_LOGGING = "1"
+          $guiErr = "$pwd\gui-err.txt"
+          $gui = Start-Process "$zipBin\sepa-xml-viewer.exe" `
+              -RedirectStandardError $guiErr -PassThru
+          Start-Sleep 5
+          $exitedFast = $gui.HasExited
+          if (-not $exitedFast) { Stop-Process -Id $gui.Id -Force }
+          $stderr = if (Test-Path $guiErr) { Get-Content $guiErr -Raw } else { "" }
+          Write-Host "===== GUI stderr (first 50 lines) ====="
+          Write-Host ($stderr -split "`n" | Select-Object -First 50 | Out-String)
+          if ($exitedFast) {
+              Write-Error ("GUI exited within 5s — event loop never started." +
+                           " Exit code: $($gui.ExitCode). See stderr above.")
+              exit 1
+          }
+          if ($stderr -match "is not installed|failed to load component|QQmlApplicationEngine failed") {
+              Write-Error "QML errors detected in GUI startup. See stderr above."
+              exit 1
+          }
+          Write-Host "OK: GUI process alive after 5s with no QML errors"
+
       - name: Collect artefacts (Linux)
         if: runner.os == 'Linux'
         run: |
