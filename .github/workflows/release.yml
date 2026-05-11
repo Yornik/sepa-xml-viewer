@@ -136,6 +136,19 @@ jobs:
           export APPIMAGE_EXTRACT_AND_RUN=1
           export PATH="$PWD:$PATH"
 
+          # linuxdeploy-plugin-qt looks for qmake on PATH or via $QMAKE; vcpkg
+          # installs it under vcpkg_installed/<triplet>/tools/Qt6/bin/qmake.
+          # Locate it dynamically so the path tolerates future vcpkg layout
+          # changes; emit diagnostics on miss so the cause is obvious.
+          QMAKE=$(find vcpkg_installed -path '*Qt6/bin/qmake' -type f -executable | head -1)
+          if [ -z "$QMAKE" ]; then
+            echo "ERROR: qmake not found anywhere under vcpkg_installed/" >&2
+            find vcpkg_installed -name '*qmake*' || true
+            exit 1
+          fi
+          export QMAKE
+          echo "Using QMAKE=$QMAKE"
+
           # The package homepage helps linuxdeploy figure out metadata.
           ./linuxdeploy \
             --appdir AppDir \
