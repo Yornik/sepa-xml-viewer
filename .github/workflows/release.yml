@@ -1,0 +1,256 @@
+name: Release
+
+# Triggered when a version tag is pushed. CI pushes the matrix builds through
+# cpack and the AppImage script, smoke-tests each artefact, then attaches the
+# whole set to a draft GitHub Release for the tag. The draft is published
+# manually once the maintainer reviews the upload.
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write  # required by softprops/action-gh-release to create the Release
+
+env:
+  VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/vcpkg-binary-cache,readwrite"
+  CMAKE_BUILD_PARALLEL_LEVEL: 4
+
+jobs:
+  package:
+    name: Package ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            preset: ci-linux
+            triplet: x64-linux
+          - os: macos-14
+            preset: ci-macos
+            triplet: arm64-osx
+          - os: windows-2022
+            preset: ci-windows
+            triplet: x64-windows
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history so git describe --tags returns the tag
+
+      - name: Verify runner toolchain
+        run: |
+          ninja --version
+          uname -a || echo "uname not available"
+
+      - name: Install Qt build prerequisites (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            autoconf autoconf-archive automake libtool pkg-config \
+            libgl1-mesa-dev libglu1-mesa-dev libegl1-mesa-dev \
+            libfontconfig1-dev libfreetype-dev libx11-dev libx11-xcb-dev \
+            libxcb1-dev libxcb-cursor-dev libxcb-glx0-dev libxcb-icccm4-dev \
+            libxcb-image0-dev libxcb-keysyms1-dev libxcb-randr0-dev \
+            libxcb-render-util0-dev libxcb-shape0-dev libxcb-shm0-dev \
+            libxcb-sync-dev libxcb-util-dev libxcb-xfixes0-dev libxcb-xkb-dev \
+            libxext-dev libxfixes-dev libxi-dev libxkbcommon-dev \
+            libxkbcommon-x11-dev libxrender-dev libdbus-1-dev \
+            fuse libfuse2  # fuse needed to run AppImage tools
+
+      - name: Install autotools + coreutils (macOS)
+        if: runner.os == 'macOS'
+        run: brew install autoconf autoconf-archive automake libtool coreutils
+
+      - name: Pin macOS deployment target
+        if: runner.os == 'macOS'
+        run: |
+          echo "MACOSX_DEPLOYMENT_TARGET=12.0" >> $GITHUB_ENV
+          echo "CMAKE_OSX_DEPLOYMENT_TARGET=12.0" >> $GITHUB_ENV
+
+      - name: Set up MSVC environment (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Bootstrap vcpkg (Windows — short path)
+        if: runner.os == 'Windows'
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgDirectory: 'C:\v'
+          vcpkgGitCommitId: 'd29e8309d1cf7a7cb6998a935b2ac5b1958a7432'
+
+      - name: Bootstrap vcpkg (Linux / macOS)
+        if: runner.os != 'Windows'
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: 'd29e8309d1cf7a7cb6998a935b2ac5b1958a7432'
+
+      # Restore the binary cache populated by the main-branch CI runs. This
+      # job is read-only on the cache — saves come from ci.yml.
+      - name: Restore vcpkg binary cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ github.workspace }}/vcpkg-binary-cache
+          key: vcpkg-bincache-${{ matrix.os }}-${{ hashFiles('vcpkg.json') }}-v1
+          restore-keys: |
+            vcpkg-bincache-${{ matrix.os }}-
+
+      - name: Configure
+        env:
+          VCPKG_DEFAULT_TRIPLET: ${{ matrix.triplet }}
+        run: cmake --preset ${{ matrix.preset }}
+
+      - name: Build
+        run: cmake --build --preset ${{ matrix.preset }}
+
+      # CPack produces all the configured generators for the platform:
+      #   Linux:   .deb + .rpm
+      #   macOS:   .dmg
+      #   Windows: NSIS .exe + .zip
+      - name: Package (CPack)
+        working-directory: build/${{ matrix.preset }}
+        run: cpack --verbose
+
+      # AppImage is built separately on Linux only — linuxdeploy is not bundled
+      # with CPack. Download the binaries, install the app to an AppDir, run
+      # linuxdeploy --plugin qt --output appimage.
+      - name: Build AppImage (Linux only)
+        if: runner.os == 'Linux'
+        working-directory: build/${{ matrix.preset }}
+        run: |
+          set -e
+          cmake --install . --prefix AppDir
+
+          # linuxdeploy + qt plugin are AppImages hosted on GitHub releases.
+          curl -sL -o linuxdeploy https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          curl -sL -o linuxdeploy-plugin-qt https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          chmod +x linuxdeploy linuxdeploy-plugin-qt
+
+          # GitHub runner has a kernel that supports FUSE but the AppImage
+          # runtime needs `--appimage-extract-and-run` to avoid fuse mount.
+          export APPIMAGE_EXTRACT_AND_RUN=1
+          export PATH="$PWD:$PATH"
+
+          # The package homepage helps linuxdeploy figure out metadata.
+          ./linuxdeploy \
+            --appdir AppDir \
+            --executable AppDir/bin/sepa-xml-viewer \
+            --desktop-file AppDir/share/applications/sepa-xml-viewer.desktop \
+            --plugin qt \
+            --output appimage
+
+          # Move into the same location CPack writes to so the upload step
+          # picks it up alongside the .deb / .rpm.
+          ls -la *.AppImage
+
+      # Smoke-test each artefact: prove the freshly-built binary actually
+      # runs by invoking it with --version. Per plan/00 §9.3.
+      - name: Smoke-test artefact (Linux)
+        if: runner.os == 'Linux'
+        working-directory: build/${{ matrix.preset }}
+        run: |
+          set -e
+          # Test the freshly-built binary (from the install tree) before
+          # going through the .deb installer dance — install rules are the
+          # same content.
+          ./bin/sepa-xml-viewer --version
+          # Test the AppImage extracted-and-run.
+          APPIMAGE_EXTRACT_AND_RUN=1 ./sepa-xml-viewer-*.AppImage --version
+
+      - name: Smoke-test artefact (macOS)
+        if: runner.os == 'macOS'
+        working-directory: build/${{ matrix.preset }}
+        run: |
+          set -e
+          ls -la sepa-xml-viewer-*.dmg
+          hdiutil attach sepa-xml-viewer-*.dmg -mountpoint /tmp/sepa-dmg -readonly
+          /tmp/sepa-dmg/sepa-xml-viewer.app/Contents/MacOS/sepa-xml-viewer --version
+          hdiutil detach /tmp/sepa-dmg
+
+      - name: Smoke-test artefact (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        working-directory: build/${{ matrix.preset }}
+        run: |
+          $exe = Get-ChildItem -Filter "sepa-xml-viewer-*.exe" | Select-Object -First 1
+          $zip = Get-ChildItem -Filter "sepa-xml-viewer-*.zip" | Select-Object -First 1
+          # ZIP path — extract and run.
+          Expand-Archive $zip -DestinationPath C:\sepa-zip -Force
+          & "C:\sepa-zip\$($zip.BaseName)\bin\sepa-xml-viewer.exe" --version
+          # NSIS installer path — silent install + run.
+          Start-Process -Wait $exe.FullName -ArgumentList "/S","/D=C:\sepa-installed"
+          & "C:\sepa-installed\bin\sepa-xml-viewer.exe" --version
+
+      - name: Collect artefacts (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p dist
+          cp build/${{ matrix.preset }}/sepa-xml-viewer-*.deb dist/
+          cp build/${{ matrix.preset }}/sepa-xml-viewer-*.rpm dist/
+          cp build/${{ matrix.preset }}/sepa-xml-viewer-*.AppImage dist/
+
+      - name: Collect artefacts (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p dist
+          cp build/${{ matrix.preset }}/sepa-xml-viewer-*.dmg dist/
+
+      - name: Collect artefacts (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item "build/${{ matrix.preset }}/sepa-xml-viewer-*.exe" -Destination dist/
+          Copy-Item "build/${{ matrix.preset }}/sepa-xml-viewer-*.zip" -Destination dist/
+
+      - name: Upload artefacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.os }}
+          path: dist/*
+          retention-days: 7
+
+  publish:
+    name: Publish draft GitHub Release
+    needs: package
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all matrix artefacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          # Each matrix leg uploads its own dist-<os>; merge them into one
+          # flat dist/ directory for the release attachment.
+          merge-multiple: true
+
+      - name: Show what we're attaching
+        run: |
+          ls -la dist/
+          file dist/* || true
+
+      - name: Create draft GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          # `draft: true` is the safety belt — the workflow uploads every
+          # artefact, but a human still has to click "Publish" on the
+          # GitHub Releases page before downloads go live to the public.
+          # Per plan/00-init-phase.md §10, init phase ships unsigned
+          # installers; the draft step is the last review chance to confirm
+          # we're OK with the unsigned-warning UX before publishing.
+          draft: true
+          generate_release_notes: true
+          files: |
+            dist/*.deb
+            dist/*.rpm
+            dist/*.AppImage
+            dist/*.dmg
+            dist/*.exe
+            dist/*.zip
