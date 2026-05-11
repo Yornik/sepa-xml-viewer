@@ -190,13 +190,27 @@ ApplicationWindow {
                                     }
                                 }
 
-                                // Default TreeViewDelegate already renders
-                                // the model's display role with the active
-                                // style. Overriding `contentItem` here was
-                                // shadowing the role-binding TreeViewDelegate
-                                // already does, which broke row population
-                                // on TableView's incubator pass.
-                                delegate: TreeViewDelegate {}
+                                // Default TreeViewDelegate's built-in
+                                // disclosure arrow is too subtle in the
+                                // Material dark theme on Windows — users
+                                // didn't realise PaymentInfo rows were
+                                // expandable. Override `indicator` with an
+                                // unambiguous ▶ / ▼ chevron that's legible
+                                // on any background. The default delegate's
+                                // role-binding for the row label is kept
+                                // by *not* overriding `contentItem`.
+                                delegate: TreeViewDelegate {
+                                    id: treeDelegate
+                                    indicator: Label {
+                                        visible: treeDelegate.hasChildren
+                                        text: treeDelegate.expanded ? "▼" : "▶"
+                                        opacity: 0.95
+                                        // No explicit font.pixelSize so the
+                                        // chevron inherits the active style's
+                                        // default and stays in proportion
+                                        // with the row label on every theme.
+                                    }
+                                }
                             }
                         }
 
